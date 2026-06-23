@@ -70,7 +70,7 @@ def get_agent_bundle(user_id: str = DEFAULT_USER_ID) -> tuple[Any, str]:
     system_prompt = create_system_prompt(xpander_agent.instructions)
     tools = get_composio_tools(user_id)
 
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+    llm = ChatOpenAI(model=xpander_agent.model_name, temperature=0)
     # The checkpointer persists conversation state per thread_id. It lives on the
     # cached agent, so all turns for a user share the same in-process memory.
     agent = create_react_agent(

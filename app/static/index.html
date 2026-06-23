@@ -54,6 +54,19 @@
       transition: all 0.15s ease;
     }
     #connectBtn:hover, #newChatBtn:hover { border-color: var(--accent); }
+    #peerUrl {
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+      padding: 9px 12px;
+      border-radius: 10px;
+      font-size: 14px;
+      width: 200px;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+    #peerUrl:focus { border-color: var(--accent); }
+    #peerUrl::placeholder { color: var(--muted); }
     #connectBtn:disabled { opacity: 0.7; cursor: default; }
     #connectBtn.connected { color: var(--ok); background: var(--ok-bg); border-color: rgba(52,211,153,0.4); }
     #connectBtn .ico { width: 16px; height: 16px; }
@@ -112,6 +125,7 @@
       <small id="userTag">&middot; loading&hellip;</small>
     </div>
     <div class="actions">
+      <input id="peerUrl" type="text" placeholder="Peer URL (optional)" title="Negotiate with this peer agent" />
       <button id="newChatBtn" title="Start a new conversation">
         <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M12 5v14M5 12h14"></path>
@@ -157,6 +171,14 @@
     const connectLabel = document.getElementById("connectLabel");
     const userTag = document.getElementById("userTag");
     const newChatBtn = document.getElementById("newChatBtn");
+    const peerUrlEl = document.getElementById("peerUrl");
+
+    // When a peer URL is set, the composer initiates an A2A negotiation with it.
+    // When empty, messages go to this instance's own agent (normal chat).
+    peerUrlEl.value = localStorage.getItem("peerUrl") || "";
+    peerUrlEl.addEventListener("input", () =>
+      localStorage.setItem("peerUrl", peerUrlEl.value.trim())
+    );
 
     let statusPoll = null;
 
@@ -246,13 +268,17 @@
       try {
         const res = await fetch("/api/calendar/connect", { method: "POST" });
         const data = await res.json();
+        if (!res.ok) {
+          connectLabel.textContent = data.detail || "Connect failed \u2014 retry";
+          return;
+        }
         if (data.redirect_url) {
           window.open(data.redirect_url, "_blank", "noopener");
           connectLabel.textContent = "Waiting for approval\u2026";
           if (statusPoll) clearInterval(statusPoll);
           statusPoll = setInterval(refreshStatus, 2500);
         } else {
-          connectLabel.textContent = "Connect Google Calendar";
+          connectLabel.textContent = "Connect failed \u2014 retry";
         }
       } catch (e) {
         connectLabel.textContent = "Connect failed \u2014 retry";
@@ -269,7 +295,36 @@
       addMessage("user", text);
       sendBtn.disabled = true;
       const typing = addTyping();
+      const peer = peerUrlEl.value.trim();
       try {
+        if (peer) {
+          const res = await fetch("/api/a2a/start", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              peer_url: peer,
+              proposal: text,
+              thread_id: conversationId,
+            }),
+          });
+          typing.remove();
+          if (!res.ok) {
+            addMessage("bot", "Error: the server returned " + res.status + ".");
+          } else {
+            const data = await res.json();
+            const turns = data.transcript || [];
+            if (turns.length === 0) {
+              addMessage("bot", "(no negotiation response)");
+            } else {
+              // The opening turn is the message we just showed as "user".
+              turns.slice(1).forEach((t) =>
+                addMessage(t.from === "me" ? "user" : "bot", t.text)
+              );
+            }
+          }
+          return;
+        }
+
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
