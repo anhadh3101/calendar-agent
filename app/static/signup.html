@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign up · Xpander</title>
+  <link rel="stylesheet" href="/auth.css" />
+</head>
+<body>
+  <main class="card">
+    <div class="brand">
+      <span class="dot"></span>
+      Xpander
+    </div>
+
+    <h1>Create your account</h1>
+    <p class="subtitle">Join Xpander to connect with your agent.</p>
+
+    <form id="signupForm">
+      <div class="field">
+        <label for="fullName">Full name</label>
+        <input id="fullName" name="full_name" type="text" required autocomplete="name" placeholder="Jane Doe" />
+      </div>
+
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" required autocomplete="email" placeholder="you@example.com" />
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters" />
+      </div>
+
+      <button class="submit" type="submit" id="submitBtn">Create account</button>
+      <div id="feedback" class="feedback" hidden></div>
+    </form>
+
+    <p class="footer">Already have an account? <a href="/login.html">Sign in</a></p>
+  </main>
+
+  <script src="/auth.js"></script>
+  <script>
+    const form = document.getElementById("signupForm");
+    const feedback = document.getElementById("feedback");
+    const submitBtn = document.getElementById("submitBtn");
+
+    function showFeedback(type, message) {
+      feedback.hidden = false;
+      feedback.className = "feedback " + type;
+      feedback.textContent = message;
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      feedback.hidden = true;
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Creating account…";
+
+      const payload = {
+        full_name: document.getElementById("fullName").value.trim(),
+        email: document.getElementById("email").value.trim(),
+        password: document.getElementById("password").value,
+      };
+
+      try {
+        const res = await fetch("/api/auth/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          const detail = data.detail;
+          const message = Array.isArray(detail)
+            ? detail.map((item) => item.msg).join(" ")
+            : (detail || "Sign up failed.");
+          showFeedback("error", message);
+          return;
+        }
+
+        showFeedback("success", data.message || "Account created.");
+        if (data.access_token) {
+          saveSession(data);
+          setTimeout(() => { window.location.href = "/"; }, 800);
+        } else {
+          setTimeout(() => { window.location.href = "/login.html"; }, 1200);
+        }
+      } catch (err) {
+        showFeedback("error", "Network error: " + err.message);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Create account";
+      }
+    });
+  </script>
+</body>
+</html>

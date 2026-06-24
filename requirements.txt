@@ -302,3 +302,4 @@ xxhash==3.7.0
 yarl==1.24.2
 zipp==3.20.2
 zstandard==0.25.0
+supabase==2.31.0

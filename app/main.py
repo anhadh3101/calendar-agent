@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from app.a2a import build_card, mount_a2a
-from app.routers import a2a_negotiate, calendar, chat, health
+from app.routers import a2a_negotiate, auth, calendar, chat, health
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
@@ -16,6 +16,7 @@ app = FastAPI(
 )
 
 app.include_router(health.router)
+app.include_router(auth.router)
 app.include_router(chat.router)
 app.include_router(calendar.router)
 app.include_router(a2a_negotiate.router)

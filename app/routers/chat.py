@@ -1,13 +1,12 @@
-import os
+from typing import Annotated, Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
+from app.deps import get_current_user
 from langchain_agents.agent_u import DEFAULT_THREAD_ID, chat, extract_last_ai_message
 
 router = APIRouter(prefix="/api", tags=["chat"])
-
-USER_ID = os.getenv("APP_USER_ID", "default_user")
 
 
 class ChatRequest(BaseModel):
@@ -22,17 +21,21 @@ class ChatResponse(BaseModel):
 
 
 @router.post("/chat", response_model=ChatResponse)
-def chat_endpoint(req: ChatRequest) -> ChatResponse:
-    """Run one agent turn for this instance's user.
+def chat_endpoint(
+    req: ChatRequest,
+    user: Annotated[Any, Depends(get_current_user)],
+) -> ChatResponse:
+    """Run one agent turn for the authenticated user.
 
     Defined as a sync `def` so FastAPI runs the blocking LLM/Composio calls in a
     threadpool instead of blocking the event loop. ``conversation_id`` selects the
     LangGraph thread so multi-turn context is preserved.
     """
+    user_id = user.id
     thread_id = req.conversation_id or DEFAULT_THREAD_ID
-    response = chat(req.message, user_id=USER_ID, thread_id=thread_id)
+    response = chat(req.message, user_id=user_id, thread_id=thread_id)
     return ChatResponse(
         reply=extract_last_ai_message(response),
-        user_id=USER_ID,
+        user_id=user_id,
         conversation_id=thread_id,
     )
