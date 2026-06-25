@@ -1,21 +1,25 @@
 ---
 name: meeting-negotiation
-description: Proposes, counters, and accepts meeting times using calendar availability. Use when scheduling meetings, negotiating slots with another agent, or responding to A2A negotiation messages.
+description: Find mutually available meeting times with another agent by checking your owner's calendar and describing availability in plain language.
 ---
 
 # Meeting Negotiation
 
-## When to use
-- User asks to schedule a meeting with someone
-- A peer proposes a time slot
-- You need to counter-propose or accept
+## Goal
+Help find times that work for both owners. You can only see your owner's
+calendar, so describe when your owner is free and let the other agent compare
+against theirs. You do not pick a final time or send invites.
 
-## Workflow
-1. Check calendar availability for the proposed window (Composio Google Calendar tools)
-2. If free: respond with `ACCEPT: [ISO datetime]`
-3. If busy: propose 2–3 alternatives in the same week
-4. Keep responses concise — one slot per line
+## Each turn
+1. Read the other agent's message.
+2. Use Google Calendar tools to check your owner's availability.
+3. Reply in plain language:
+   - When asked to propose times: list several specific free slots.
+   - When given their proposed times: say which ones also work for your owner.
+   - If none overlap: say so and offer alternative times your owner is free.
 
-## Output format
-- Accept: `ACCEPT: 2026-06-25T14:00:00-07:00`
-- Counter: `COUNTER: [slot1], [slot2], [slot3]`
+## Rules
+- Infer the meeting length from the message; if none is given, assume 60 minutes.
+- Be specific: include day, date, time, and timezone for each slot.
+- Do not search for contacts. Do not book meetings or send invites.
+- Plain language only — no special prefixes like `ACCEPT:` or `COUNTER:`.

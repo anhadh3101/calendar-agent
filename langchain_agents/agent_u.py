@@ -1,7 +1,8 @@
+import json
 import os
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any, Iterator, Literal
 
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
@@ -22,35 +23,21 @@ from composio import Composio
 from composio_langchain import LangchainProvider
 
 from langchain_agents.tools.check_calendar import make_check_calendar_connected_tool
+from langchain_agents.tools.negotiation_status import (
+    DEFAULT_NEGOTIATION_STATUS,
+    REPORT_NEGOTIATION_STATUS_TOOL,
+    make_report_negotiation_status_tool,
+)
 from langchain_agents.tools.search_contacts import make_search_contacts_tool
 from langchain_agents.tools.skills import (
-    build_skills_catalog_prompt,
     discover_skills,
-    load_skill_body,
     make_load_skill_tool,
     merge_xpander_skills,
 )
+from prompts.agent_u import create_system_prompt
+from prompts.negotiation import SENDER_TOOL_NOTE, create_negotiation_prompt
 
-CONTACT_SEARCH_PROMPT = (
-    "When the user refers to another person by name, call search_contacts with that "
-    "name before answering. Use agent_url from the result to reach their agent. "
-    "If multiple matches are returned, ask the user to clarify which contact they mean."
-)
-
-A2A_NEGOTIATION_PROMPT = """\
-You are negotiating a meeting time on behalf of your owner via agent-to-agent (A2A) messaging.
-
-Rules:
-- Do NOT search for contacts. The peer agent is already connected — you are responding to them.
-- Do NOT use the book-meeting workflow. Only negotiate times.
-- Check calendar availability using Google Calendar tools.
-- Reply with exactly one of:
-  - ACCEPT: [ISO datetime]
-  - COUNTER: [slot1], [slot2], [slot3]
-- Keep responses short — no extra prose.
-
-{skill_body}
-"""
+NegotiationRole = Literal["receiver", "sender"]
 
 REQUIRED_VARS = (
     "OPENAI_API_KEY",
@@ -70,30 +57,6 @@ def validate_environment() -> None:
         raise KeyError(f"Missing required environment variables: {', '.join(missing)}")
 
 
-def create_system_prompt(
-    instructions: Any, skills: list[dict] | None = None
-) -> str:
-    parts: list[str] = []
-
-    if getattr(instructions, "general", None):
-        parts.append(f"System: {instructions.general}")
-
-    if getattr(instructions, "goal_str", None):
-        parts.append(f"Goals:\n{instructions.goal_str}")
-
-    if getattr(instructions, "instructions", None):
-        instr_list = "\n".join(f"- {instr}" for instr in instructions.instructions)
-        parts.append(f"Instructions:\n{instr_list}")
-
-    parts.append(CONTACT_SEARCH_PROMPT)
-
-    catalog = build_skills_catalog_prompt(skills or [])
-    if catalog:
-        parts.append(catalog)
-
-    return "\n\n".join(parts)
-
-
 def get_composio_tools(user_id: str) -> list[Any]:
     composio = Composio(provider=LangchainProvider())
     session = composio.create(user_id=user_id)
@@ -109,25 +72,31 @@ def get_agent_tools(user_id: str) -> list[Any]:
     ]
 
 
-def get_negotiation_tools(user_id: str) -> list[Any]:
-    return get_composio_tools(user_id) + [
+def get_negotiation_tools(
+    user_id: str,
+    role: NegotiationRole = "receiver",
+) -> list[Any]:
+    tools = get_composio_tools(user_id) + [
         make_check_calendar_connected_tool(user_id),
     ]
-
-
-def create_negotiation_prompt() -> str:
-    skill_body = load_skill_body("meeting-negotiation") or ""
-    return A2A_NEGOTIATION_PROMPT.format(skill_body=skill_body)
+    if role == "sender":
+        tools.append(make_report_negotiation_status_tool())
+    return tools
 
 
 @lru_cache(maxsize=128)
-def get_negotiation_agent_bundle(user_id: str = DEFAULT_USER_ID) -> tuple[Any, str]:
+def get_negotiation_agent_bundle(
+    user_id: str = DEFAULT_USER_ID,
+    role: NegotiationRole = "receiver",
+) -> tuple[Any, str]:
     """Build a headless agent for A2A slot negotiation (no contact search or interrupts)."""
     validate_environment()
 
     xpander_agent = Agents().get(agent_id=os.getenv("XPANDER_AGENT_ID"))
-    system_prompt = create_negotiation_prompt()
-    tools = get_negotiation_tools(user_id)
+    system_prompt = create_negotiation_prompt(
+        extra_tool_note=SENDER_TOOL_NOTE if role == "sender" else None
+    )
+    tools = get_negotiation_tools(user_id, role)
 
     llm = ChatOpenAI(model=xpander_agent.model_name, temperature=0)
     agent = create_react_agent(
@@ -220,17 +189,55 @@ def chat(
     return build_chat_result(agent, response, thread_id, user_id)
 
 
+def extract_negotiation_status(response: dict[str, Any]) -> str | None:
+    """Read report_negotiation_status from tool results in an invoke response."""
+    for message in reversed(response.get("messages", [])):
+        if getattr(message, "type", None) == "tool":
+            if getattr(message, "name", None) != REPORT_NEGOTIATION_STATUS_TOOL:
+                continue
+            content = message.content
+            if isinstance(content, dict):
+                return content.get("status")
+            if isinstance(content, str):
+                try:
+                    return json.loads(content).get("status")
+                except json.JSONDecodeError:
+                    pass
+        if getattr(message, "type", None) == "ai":
+            for tool_call in getattr(message, "tool_calls", None) or []:
+                name = (
+                    tool_call.get("name")
+                    if isinstance(tool_call, dict)
+                    else getattr(tool_call, "name", None)
+                )
+                if name != REPORT_NEGOTIATION_STATUS_TOOL:
+                    continue
+                args = (
+                    tool_call.get("args")
+                    if isinstance(tool_call, dict)
+                    else getattr(tool_call, "args", None)
+                )
+                if isinstance(args, dict):
+                    return args.get("status")
+    return None
+
+
 def negotiate_chat(
     user_message: str,
     user_id: str,
     thread_id: str,
-) -> dict[str, Any]:
-    """Run one A2A negotiation turn (calendar tools only, no UI interrupts)."""
-    agent, _ = get_negotiation_agent_bundle(user_id)
-    return agent.invoke(
+) -> dict[str, str]:
+    """Run one sender A2A negotiation turn; returns reply text and continue flag."""
+    agent, _ = get_negotiation_agent_bundle(user_id, "sender")
+    result = agent.invoke(
         {"messages": [("user", user_message)]},
         config=_thread_config(thread_id),
     )
+    status = extract_negotiation_status(result) or DEFAULT_NEGOTIATION_STATUS
+    return {
+        "reply": extract_last_ai_message(result),
+        "status": status,
+    }
 
 
 def resume_chat(

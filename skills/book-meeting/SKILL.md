@@ -17,10 +17,10 @@ description: Books a meeting with another person. Use when the user wants to sch
 5. If status is `not_found`, tell the user no matching contact exists.
 6. If status is `cancelled`, tell the user booking was cancelled.
 7. If status is `selected`:
-   - If `negotiation.status` is `accepted`, create a Google Calendar event for `negotiation.accepted` with the selected contact (use their email as attendee).
-   - If `negotiation.status` is `no_agreement`, tell the user you could not agree on a time and suggest trying different times.
-   - If there is no `negotiation` field, confirm the chosen contact (name and email) only.
-8. Confirm the outcome to the user (booked time, or why it failed).
+   - Read `negotiation.text` — the free-flow availability discussion between your agent and the contact's agent.
+   - Present that text clearly to the user as the proposed meeting availability, and confirm the chosen contact (name and email).
+   - Do NOT create a calendar event yet. Slot selection and sending the invite come later.
+   - If `negotiation.text` is missing or empty, tell the user availability could not be retrieved and suggest trying again.
 
 ## Rules
 - Always run step 1 before anything else.

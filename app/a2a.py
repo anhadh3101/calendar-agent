@@ -10,7 +10,6 @@ A2A. Targets a2a-sdk 1.1.0 (protobuf-based).
 
 import asyncio
 import concurrent.futures
-import re
 
 import httpx
 from fastapi import FastAPI
@@ -38,6 +37,8 @@ from langchain_agents.agent_u import (
     get_negotiation_agent_bundle,
     negotiate_chat,
 )
+
+MAX_NEGOTIATION_ROUNDS = 5
 
 RPC_PATH = "/api/v1/jsonrpc/"
 
@@ -143,56 +144,42 @@ async def send_to_peer(peer_base_url: str, text: str, thread_id: str) -> str | N
     return None
 
 
-def parse_accepted_slot(transcript: list[dict[str, str]]) -> str | None:
-    """Extract the accepted ISO datetime from an A2A transcript, if any."""
-    for turn in reversed(transcript):
-        match = re.search(r"ACCEPT:\s*(.+)", turn.get("text", ""), re.I)
-        if match:
-            return match.group(1).strip()
-    return None
-
-
-def summarize_negotiation(transcript: list[dict[str, str]]) -> dict:
-    """Build a structured negotiation result for the booking resume payload."""
-    accepted = parse_accepted_slot(transcript)
-    return {
-        "status": "accepted" if accepted else "no_agreement",
-        "accepted": accepted,
-        "transcript": transcript,
-    }
-
-
 async def run_negotiation(
     peer_url: str,
     opening: str,
     thread_id: str,
     user_id: str = DEFAULT_USER_ID,
-    max_rounds: int = 8,
 ) -> list[dict[str, str]]:
-    """Alternate turns with a peer until one side ACCEPTs (or max_rounds)."""
+    """Exchange availability with a peer; return the full free-flow transcript.
+
+    The sender agent runs after each peer reply and reports whether to continue
+    via report_negotiation_status (done / stuck / needs_more_slots).
+    """
     transcript: list[dict[str, str]] = []
     loop = asyncio.get_running_loop()
-    message = opening
-    for _ in range(max_rounds):
-        transcript.append({"from": "me", "text": message})
-        peer_reply = await send_to_peer(peer_url, message, thread_id)
-        transcript.append({"from": "peer", "text": peer_reply or ""})
-        if peer_reply and "ACCEPT" in peer_reply.upper():
-            break
 
-        # Feed the peer's reply into our own agent to produce the next move.
-        # Same isolation as the executor: run on the dedicated pool so xpander's
-        # sync bridge stays off this request's event loop.
-        result = await loop.run_in_executor(
+    transcript.append({"from": "me", "text": opening})
+    peer_reply = await send_to_peer(peer_url, opening, thread_id)
+    transcript.append({"from": "peer", "text": peer_reply or ""})
+
+    rounds = 0
+    while peer_reply and rounds < MAX_NEGOTIATION_ROUNDS:
+        turn = await loop.run_in_executor(
             _AGENT_POOL,
             negotiate_chat,
-            peer_reply or "",
+            peer_reply,
             user_id,
             thread_id,
         )
-        message = extract_last_ai_message(result)
-        if "ACCEPT" in message.upper():
-            transcript.append({"from": "me", "text": message})
-            await send_to_peer(peer_url, message, thread_id)
+        reply_text = turn["reply"]
+        status = turn["status"]
+        transcript.append({"from": "me", "text": reply_text, "status": status})
+
+        if status != "needs_more_slots":
             break
+
+        peer_reply = await send_to_peer(peer_url, reply_text, thread_id)
+        transcript.append({"from": "peer", "text": peer_reply or ""})
+        rounds += 1
+
     return transcript
