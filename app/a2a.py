@@ -10,6 +10,7 @@ A2A. Targets a2a-sdk 1.1.0 (protobuf-based).
 
 import asyncio
 import concurrent.futures
+import re
 
 import httpx
 from fastapi import FastAPI
@@ -30,11 +31,12 @@ from a2a.server.tasks import InMemoryTaskStore
 from a2a.server.routes import create_agent_card_routes, create_jsonrpc_routes
 from a2a.client import ClientConfig, create_client
 
+from app.instance_owner import resolve_instance_owner_id
 from langchain_agents.agent_u import (
     DEFAULT_USER_ID,
-    chat,
     extract_last_ai_message,
-    get_agent_bundle,
+    get_negotiation_agent_bundle,
+    negotiate_chat,
 )
 
 RPC_PATH = "/api/v1/jsonrpc/"
@@ -85,13 +87,11 @@ def build_card(name: str, base_url: str) -> AgentCard:
 class NegotiatorExecutor(AgentExecutor):
     """Receiver side: a peer's message arrives, our agent crafts the reply."""
 
-    def __init__(self, user_id: str = DEFAULT_USER_ID):
-        self.user_id = user_id
-
     def _run_turn(self, incoming: str, thread_id: str) -> str:
         # Runs in a worker thread with no live event loop, so xpander_sdk's
         # sync bridge never touches (and corrupts) the server's loop.
-        agent, _ = get_agent_bundle(self.user_id)
+        user_id = resolve_instance_owner_id()
+        agent, _ = get_negotiation_agent_bundle(user_id)
         result = agent.invoke(
             {"messages": [("user", incoming)]},
             {"configurable": {"thread_id": thread_id}},
@@ -115,10 +115,10 @@ class NegotiatorExecutor(AgentExecutor):
         raise Exception("cancel not supported")
 
 
-def mount_a2a(app: FastAPI, card: AgentCard, user_id: str = DEFAULT_USER_ID) -> None:
+def mount_a2a(app: FastAPI, card: AgentCard) -> None:
     """Register the agent-card and JSON-RPC routes on an existing FastAPI app."""
     handler = DefaultRequestHandler(
-        agent_executor=NegotiatorExecutor(user_id),
+        agent_executor=NegotiatorExecutor(),
         task_store=InMemoryTaskStore(),
         agent_card=card,
     )
@@ -143,6 +143,25 @@ async def send_to_peer(peer_base_url: str, text: str, thread_id: str) -> str | N
     return None
 
 
+def parse_accepted_slot(transcript: list[dict[str, str]]) -> str | None:
+    """Extract the accepted ISO datetime from an A2A transcript, if any."""
+    for turn in reversed(transcript):
+        match = re.search(r"ACCEPT:\s*(.+)", turn.get("text", ""), re.I)
+        if match:
+            return match.group(1).strip()
+    return None
+
+
+def summarize_negotiation(transcript: list[dict[str, str]]) -> dict:
+    """Build a structured negotiation result for the booking resume payload."""
+    accepted = parse_accepted_slot(transcript)
+    return {
+        "status": "accepted" if accepted else "no_agreement",
+        "accepted": accepted,
+        "transcript": transcript,
+    }
+
+
 async def run_negotiation(
     peer_url: str,
     opening: str,
@@ -165,7 +184,11 @@ async def run_negotiation(
         # Same isolation as the executor: run on the dedicated pool so xpander's
         # sync bridge stays off this request's event loop.
         result = await loop.run_in_executor(
-            _AGENT_POOL, chat, peer_reply or "", user_id, thread_id
+            _AGENT_POOL,
+            negotiate_chat,
+            peer_reply or "",
+            user_id,
+            thread_id,
         )
         message = extract_last_ai_message(result)
         if "ACCEPT" in message.upper():
