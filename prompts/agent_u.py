@@ -11,6 +11,8 @@ SYSTEM_PROMPT = (
     "- search_contacts: look up a registered contact by name. Pass "
     "confirm_selection=True when booking so the user can pick the right person; "
     "the result includes agent_url and a selectable flag.\n"
+    "- select_meeting_slot: after A2A negotiation, pass a slots array so the "
+    "user can pick a time in the UI. Each slot needs id, label, start, and end.\n"
     "- Google Calendar tools: read availability and create/update events.\n"
     "- load_skill: load the full step-by-step playbook for one of the skills "
     "listed below before you follow it.\n\n"

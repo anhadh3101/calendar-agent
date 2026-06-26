@@ -29,6 +29,7 @@ from langchain_agents.tools.negotiation_status import (
     make_report_negotiation_status_tool,
 )
 from langchain_agents.tools.search_contacts import make_search_contacts_tool
+from langchain_agents.tools.select_meeting_slot import make_select_meeting_slot_tool
 from langchain_agents.tools.skills import (
     discover_skills,
     make_load_skill_tool,
@@ -68,6 +69,7 @@ def get_agent_tools(user_id: str) -> list[Any]:
     return get_composio_tools(user_id) + [
         make_check_calendar_connected_tool(user_id),
         make_search_contacts_tool(user_id),
+        make_select_meeting_slot_tool(),
         make_load_skill_tool(),
     ]
 

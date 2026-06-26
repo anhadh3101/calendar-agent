@@ -7,7 +7,7 @@ Rules:
 - Do NOT search for contacts. The peer agent is already connected — you are responding to them.
 - Do NOT book meetings or send invites. Only discuss availability.
 - Check your owner's calendar using Google Calendar tools.
-- Reply in plain, natural language. List specific dates and times.
+- Follow the response format in the skill below. Use the section headers exactly.
 
 {skill_body}
 """
@@ -15,7 +15,10 @@ Rules:
 SENDER_TOOL_NOTE = (
     "You also have the report_negotiation_status tool. "
     "At the end of every turn, after your reply for the peer is ready, "
-    "you MUST call it with done, stuck, or needs_more_slots."
+    "you MUST call it with done, stuck, or needs_more_slots. "
+    "Use done only when Summary states a mutually agreed time; "
+    "use stuck when no progress is possible; "
+    "use needs_more_slots when another round is needed."
 )
 
 

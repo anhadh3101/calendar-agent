@@ -1,6 +1,6 @@
 ---
 name: meeting-negotiation
-description: Find mutually available meeting times with another agent by checking your owner's calendar and describing availability in plain language.
+description: Find mutually available meeting times with another agent by checking your owner's calendar and describing availability using a consistent response format.
 ---
 
 # Meeting Negotiation
@@ -13,13 +13,45 @@ against theirs. You do not pick a final time or send invites.
 ## Each turn
 1. Read the other agent's message.
 2. Use Google Calendar tools to check your owner's availability.
-3. Reply in plain language:
-   - When asked to propose times: list several specific free slots.
-   - When given their proposed times: say which ones also work for your owner.
-   - If none overlap: say so and offer alternative times your owner is free.
+3. Reply using the response format below.
+
+## Response format
+
+Use this structure every turn. Keep section headers exactly as shown.
+
+**Summary**
+One sentence: what you understood and what you are doing this turn.
+
+**My owner's availability**
+- [Day, Mon DD] [start]–[end] [timezone]
+- [Day, Mon DD] [start]–[end] [timezone]
+
+Use 2–5 slots when proposing. When responding to their slots, list only overlaps
+or write "None of these work" and offer alternatives.
+
+**Question**
+One clear ask for the peer, e.g. "Which of these works for your owner?" or
+"Can you propose times next week?"
+
+## Turn-specific rules
+
+### When proposing times
+- Put all proposed slots under **My owner's availability**.
+- End with **Question**: ask them to pick one or counter.
+
+### When they proposed times
+- Under **My owner's availability**, list only slots that work for your owner.
+- If none work, write "None of these work" and offer 2–3 alternatives.
+- End with **Question**.
+
+### When you agree on a time
+- **Summary**: state the agreed time once, in full (day, date, time, timezone).
+- **My owner's availability**: repeat the agreed slot only.
+- **Question**: "Please confirm this works for your owner."
 
 ## Rules
 - Infer the meeting length from the message; if none is given, assume 60 minutes.
-- Be specific: include day, date, time, and timezone for each slot.
+- Always use the same time style (12-hour or 24-hour) and include timezone (e.g. PDT).
+- One slot per bullet; never run slots together in a paragraph.
 - Do not search for contacts. Do not book meetings or send invites.
-- Plain language only — no special prefixes like `ACCEPT:` or `COUNTER:`.
+- No special prefixes like `ACCEPT:` or `COUNTER:`.

@@ -17,10 +17,21 @@ description: Books a meeting with another person. Use when the user wants to sch
 5. If status is `not_found`, tell the user no matching contact exists.
 6. If status is `cancelled`, tell the user booking was cancelled.
 7. If status is `selected`:
-   - Read `negotiation.text` — the free-flow availability discussion between your agent and the contact's agent.
-   - Present that text clearly to the user as the proposed meeting availability, and confirm the chosen contact (name and email).
-   - Do NOT create a calendar event yet. Slot selection and sending the invite come later.
-   - If `negotiation.text` is missing or empty, tell the user availability could not be retrieved and suggest trying again.
+   - Read `negotiation.outcome` and `negotiation.transcript`.
+   - If outcome is not `done`, tell the user negotiation did not succeed and suggest trying again.
+   - If outcome is `done`:
+     - From the transcript, identify mutually workable times (focus on the last turns and **My owner's availability** bullets).
+     - Build a slots array and call **select_meeting_slot** with it.
+     - Each slot needs `id`, `label`, `start` (ISO 8601 UTC), and `end` (ISO 8601 UTC).
+     - If one time was clearly agreed, pass a one-item list.
+     - Do not list slots in chat; use the tool.
+   - If `negotiation` is missing or transcript is empty, tell the user availability could not be retrieved.
+8. If slot selection returns `selected`:
+   - Create a Google Calendar event using `slot.start` and `slot.end`.
+   - Add the contact's email from the search result as an attendee.
+   - Confirm the booking to the user with the chosen time and contact name.
+9. If slot selection returns `cancelled` or `no_slots`:
+   - Tell the user booking was cancelled or no times could be parsed; suggest trying again.
 
 ## Rules
 - Always run step 1 before anything else.

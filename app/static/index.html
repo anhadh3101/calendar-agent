@@ -110,20 +110,23 @@
     #sendBtn:disabled { opacity: 0.5; cursor: default; }
     .hint { max-width: 760px; margin: 8px auto 0; padding: 0 20px; color: var(--muted); font-size: 12px; text-align: center; }
 
-    .contact-picker {
+    .contact-picker,
+    .slot-picker {
       margin-top: 8px;
       padding: 12px;
       border: 1px solid var(--border-strong);
       border-radius: 10px;
       background: var(--panel);
     }
-    .contact-picker h4 {
+    .contact-picker h4,
+    .slot-picker h4 {
       margin: 0 0 10px;
       font-size: 14px;
       font-weight: 600;
       color: var(--text);
     }
-    .contact-picker .contact-row {
+    .contact-picker .contact-row,
+    .slot-picker .slot-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -131,10 +134,13 @@
       padding: 10px 0;
       border-bottom: 1px solid var(--border);
     }
-    .contact-picker .contact-row:last-child { border-bottom: none; }
+    .contact-picker .contact-row:last-child,
+    .slot-picker .slot-row:last-child { border-bottom: none; }
     .contact-picker .contact-row.unavailable { opacity: 0.65; }
-    .contact-picker .contact-info { flex: 1; min-width: 0; }
-    .contact-picker .contact-name {
+    .contact-picker .contact-info,
+    .slot-picker .slot-info { flex: 1; min-width: 0; }
+    .contact-picker .contact-name,
+    .slot-picker .slot-label {
       font-weight: 600;
       color: var(--text);
       font-size: 14px;
@@ -147,7 +153,8 @@
     .contact-picker .contact-meta.unavailable {
       color: #b45309;
     }
-    .contact-picker .contact-select {
+    .contact-picker .contact-select,
+    .slot-picker .slot-select {
       flex: 0 0 auto;
       border: 1px solid var(--border-strong);
       background: var(--panel-2);
@@ -158,19 +165,23 @@
       cursor: pointer;
       transition: all 0.15s ease;
     }
-    .contact-picker .contact-select:hover:not(:disabled) {
+    .contact-picker .contact-select:hover:not(:disabled),
+    .slot-picker .slot-select:hover:not(:disabled) {
       border-color: var(--accent);
       background: var(--panel);
     }
-    .contact-picker .contact-select:disabled { opacity: 0.6; cursor: default; }
-    .contact-picker-actions {
+    .contact-picker .contact-select:disabled,
+    .slot-picker .slot-select:disabled { opacity: 0.6; cursor: default; }
+    .contact-picker-actions,
+    .slot-picker-actions {
       display: flex;
       justify-content: flex-end;
       margin-top: 12px;
       padding-top: 12px;
       border-top: 1px solid var(--border);
     }
-    .contact-picker .contact-cancel {
+    .contact-picker .contact-cancel,
+    .slot-picker .slot-cancel {
       border: 1px solid var(--border-strong);
       background: var(--panel);
       color: var(--muted);
@@ -180,12 +191,47 @@
       cursor: pointer;
       transition: all 0.15s ease;
     }
-    .contact-picker .contact-cancel:hover:not(:disabled) {
+    .contact-picker .contact-cancel:hover:not(:disabled),
+    .slot-picker .slot-cancel:hover:not(:disabled) {
       border-color: var(--border-strong);
       color: var(--text-soft);
       background: var(--panel-2);
     }
-    .contact-picker .contact-cancel:disabled { opacity: 0.6; cursor: default; }
+    .contact-picker .contact-cancel:disabled,
+    .slot-picker .slot-cancel:disabled { opacity: 0.6; cursor: default; }
+
+    .a2a-panel {
+      margin-bottom: 22px;
+      padding: 14px 16px;
+      border: 1px solid var(--border-strong);
+      border-radius: 12px;
+      background: var(--panel-2);
+    }
+    .a2a-header {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 12px;
+    }
+    .a2a-thread { display: flex; flex-direction: column; gap: 12px; }
+    .a2a-turn { line-height: 1.5; }
+    .a2a-agent-label {
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .a2a-me .a2a-agent-label { color: var(--accent-2); }
+    .a2a-peer .a2a-agent-label { color: var(--ok); }
+    .a2a-body {
+      font-size: 14px;
+      color: var(--text-soft);
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .a2a-body a { color: var(--accent-2); }
+    .a2a-body a:hover { color: var(--accent); }
   </style>
 </head>
 <body>
@@ -309,19 +355,69 @@
       return mainId + ":a2a";
     }
 
-    function formatNegotiationText(transcript) {
+    function myAgentLabel() {
+      const name = displayName(getSession());
+      return name ? name + "'s agent" : "Your agent";
+    }
+
+    function peerAgentLabel(contact) {
+      const name = contact.display_name || contact.email;
+      return name ? name + "'s agent" : "Their agent";
+    }
+
+    function formatNegotiationText(transcript, labels) {
+      const myLabel = labels?.myAgent || "Your agent";
+      const peerLabel = labels?.peerAgent || "Their agent";
       return transcript
         .map((t) => {
-          const who = t.from === "me" ? "My agent" : "Their agent";
+          const who = t.from === "me" ? myLabel : peerLabel;
           return who + ": " + (t.text || "");
         })
         .join("\n\n");
     }
 
-    function renderNegotiationTranscript(transcript) {
-      transcript.slice(1).forEach((t) =>
-        addMessage(t.from === "me" ? "user" : "bot", t.text)
-      );
+    function inferNegotiationOutcome(transcript) {
+      const withStatus = transcript.filter((t) => t.from === "me" && t.status);
+      if (withStatus.length === 0) return "stuck";
+      return withStatus[withStatus.length - 1].status;
+    }
+
+    function renderA2AThread(transcript, labels) {
+      const empty = document.getElementById("empty");
+      if (empty) empty.remove();
+
+      const panel = document.createElement("div");
+      panel.className = "a2a-panel";
+
+      const header = document.createElement("div");
+      header.className = "a2a-header";
+      header.textContent = "Agent-to-agent negotiation";
+      panel.appendChild(header);
+
+      const thread = document.createElement("div");
+      thread.className = "a2a-thread";
+
+      transcript.forEach((t) => {
+        const isMine = t.from === "me";
+        const turn = document.createElement("div");
+        turn.className = "a2a-turn " + (isMine ? "a2a-me" : "a2a-peer");
+
+        const label = document.createElement("div");
+        label.className = "a2a-agent-label";
+        label.textContent = isMine ? labels.myAgent : labels.peerAgent;
+
+        const body = document.createElement("div");
+        body.className = "a2a-body";
+        body.innerHTML = renderContent(t.text || "");
+
+        turn.appendChild(label);
+        turn.appendChild(body);
+        thread.appendChild(turn);
+      });
+
+      panel.appendChild(thread);
+      messagesEl.appendChild(panel);
+      document.getElementById("main").scrollTop = document.getElementById("main").scrollHeight;
     }
 
     function reenableContactPicker(pickerEl, btn) {
@@ -461,6 +557,164 @@
       document.getElementById("main").scrollTop = document.getElementById("main").scrollHeight;
     }
 
+    function showSlotPicker(interruptPayload) {
+      const empty = document.getElementById("empty");
+      if (empty) empty.remove();
+
+      const msg = document.createElement("div");
+      msg.className = "msg bot";
+      const avatar = document.createElement("div");
+      avatar.className = "avatar";
+      avatar.textContent = "AI";
+
+      const body = document.createElement("div");
+      body.className = "body";
+
+      const picker = document.createElement("div");
+      picker.className = "slot-picker";
+
+      const heading = document.createElement("h4");
+      heading.textContent = "Select a meeting time:";
+      picker.appendChild(heading);
+
+      const slots = interruptPayload.slots || [];
+      if (slots.length === 0) {
+        picker.appendChild(document.createTextNode("No times available."));
+      }
+
+      slots.forEach((slot) => {
+        const row = document.createElement("div");
+        row.className = "slot-row";
+
+        const info = document.createElement("div");
+        info.className = "slot-info";
+
+        const labelEl = document.createElement("div");
+        labelEl.className = "slot-label";
+        labelEl.textContent = slot.label || slot.id || "Unknown time";
+
+        info.appendChild(labelEl);
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "slot-select";
+        btn.textContent = "Select";
+        btn.addEventListener("click", () => resumeSlotSelection(slot, btn, picker));
+
+        row.appendChild(info);
+        row.appendChild(btn);
+        picker.appendChild(row);
+      });
+
+      const actions = document.createElement("div");
+      actions.className = "slot-picker-actions";
+      const cancelBtn = document.createElement("button");
+      cancelBtn.type = "button";
+      cancelBtn.className = "slot-cancel";
+      cancelBtn.textContent = "Cancel";
+      cancelBtn.addEventListener("click", () => cancelSlotSelection(picker, cancelBtn));
+      actions.appendChild(cancelBtn);
+      picker.appendChild(actions);
+
+      body.appendChild(picker);
+      msg.appendChild(avatar);
+      msg.appendChild(body);
+      messagesEl.appendChild(msg);
+      document.getElementById("main").scrollTop = document.getElementById("main").scrollHeight;
+    }
+
+    function disablePicker(pickerEl) {
+      pickerEl.querySelectorAll("button").forEach((b) => {
+        b.disabled = true;
+      });
+    }
+
+    async function resumeSlotSelection(slot, btn, pickerEl) {
+      disablePicker(pickerEl);
+      btn.textContent = "Booking\u2026";
+
+      const typing = addTyping();
+      sendBtn.disabled = true;
+
+      try {
+        const res = await authFetch("/api/chat/resume", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conversation_id: conversationId,
+            resume: { slot_id: slot.id },
+          }),
+        });
+
+        typing.remove();
+
+        if (!res.ok) {
+          addMessage("bot", "Error resuming chat: the server returned " + res.status + ".");
+          pickerEl.querySelectorAll("button").forEach((b) => {
+            if (b.classList.contains("slot-select")) {
+              b.disabled = false;
+              b.textContent = "Select";
+            } else if (b.classList.contains("slot-cancel")) {
+              b.disabled = false;
+            }
+          });
+          return;
+        }
+
+        const data = await res.json();
+        handleChatResponse(data);
+      } catch (e) {
+        typing.remove();
+        addMessage("bot", "Network error: " + e.message);
+        pickerEl.querySelectorAll("button").forEach((b) => {
+          b.disabled = false;
+        });
+        btn.textContent = "Select";
+      } finally {
+        sendBtn.disabled = false;
+        inputEl.focus();
+      }
+    }
+
+    async function cancelSlotSelection(pickerEl, cancelBtn) {
+      disablePicker(pickerEl);
+      cancelBtn.textContent = "Cancelling\u2026";
+
+      const typing = addTyping();
+      sendBtn.disabled = true;
+
+      try {
+        const res = await authFetch("/api/chat/resume", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conversation_id: conversationId,
+            resume: { cancelled: true },
+          }),
+        });
+
+        typing.remove();
+
+        if (!res.ok) {
+          addMessage("bot", "Error: could not cancel.");
+          cancelBtn.disabled = false;
+          cancelBtn.textContent = "Cancel";
+          return;
+        }
+
+        const data = await res.json();
+        handleChatResponse(data);
+      } catch (e) {
+        typing.remove();
+        addMessage("bot", "Network error: " + e.message);
+        cancelBtn.disabled = false;
+        cancelBtn.textContent = "Cancel";
+      } finally {
+        sendBtn.disabled = false;
+        inputEl.focus();
+      }
+    }
+
     function disableContactPicker(pickerEl) {
       pickerEl.querySelectorAll("button").forEach((b) => {
         b.disabled = true;
@@ -476,7 +730,7 @@
       const proposal = pendingProposal
         ? `I'd like to schedule a meeting with the following constraints: ${pendingProposal}. Please check your calendar and propose times that work.`
         : "I would like to schedule a meeting. Please check your calendar and propose available times.";
-      let negotiation = { text: "", transcript: [] };
+      let negotiation = { transcript: [], outcome: "stuck" };
       let transcript = [];
 
       try {
@@ -490,10 +744,18 @@
           }),
         });
 
+        const agentLabels = {
+          myAgent: myAgentLabel(),
+          peerAgent: peerAgentLabel(contact),
+        };
+
         if (negoRes.ok) {
           const negoData = await negoRes.json();
           transcript = negoData.transcript || [];
-          negotiation = { text: formatNegotiationText(transcript), transcript };
+          negotiation = {
+            transcript,
+            outcome: inferNegotiationOutcome(transcript),
+          };
         }
 
         const res = await authFetch("/api/chat/resume", {
@@ -516,7 +778,7 @@
             "Negotiation failed: the server returned " + negoRes.status + "."
           );
         } else if (transcript.length > 0) {
-          renderNegotiationTranscript(transcript);
+          renderA2AThread(transcript, agentLabels);
         }
 
         if (!res.ok) {
@@ -577,6 +839,10 @@
     function handleChatResponse(data) {
       if (data.status === "interrupt" && data.interrupt?.type === "contact_selection") {
         showContactPicker(data.interrupt);
+        return;
+      }
+      if (data.status === "interrupt" && data.interrupt?.type === "slot_selection") {
+        showSlotPicker(data.interrupt);
         return;
       }
       addMessage("bot", data.reply || "(no response)");
