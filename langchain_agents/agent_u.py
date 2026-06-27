@@ -64,6 +64,10 @@ def get_composio_tools(user_id: str) -> list[Any]:
     session.update(toolkits={"enable": ["googlecalendar"]})
     return session.tools()
 
+def get_xpander_tools() -> list[Any]:
+    xpander_agent = Agents().get(agent_id=os.getenv("XPANDER_AGENT_ID"))
+    xpander_agent.tools.is_async = False
+    return xpander_agent.tools.functions
 
 def get_agent_tools(user_id: str) -> list[Any]:
     return get_composio_tools(user_id) + [
@@ -71,7 +75,7 @@ def get_agent_tools(user_id: str) -> list[Any]:
         make_search_contacts_tool(user_id),
         make_select_meeting_slot_tool(),
         make_load_skill_tool(),
-    ]
+    ] + get_xpander_tools()
 
 
 def get_negotiation_tools(

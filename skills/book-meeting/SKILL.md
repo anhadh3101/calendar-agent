@@ -20,10 +20,8 @@ description: Books a meeting with another person. Use when the user wants to sch
    - Read `negotiation.outcome` and `negotiation.transcript`.
    - If outcome is not `done`, tell the user negotiation did not succeed and suggest trying again.
    - If outcome is `done`:
-     - From the transcript, identify mutually workable times (focus on the last turns and **My owner's availability** bullets).
-     - Build a slots array and call **select_meeting_slot** with it.
+     - From the last `me` turn with status `done`, take every bullet under **My owner's availability** and pass them all to **select_meeting_slot**.
      - Each slot needs `id`, `label`, `start` (ISO 8601 UTC), and `end` (ISO 8601 UTC).
-     - If one time was clearly agreed, pass a one-item list.
      - Do not list slots in chat; use the tool.
    - If `negotiation` is missing or transcript is empty, tell the user availability could not be retrieved.
 8. If slot selection returns `selected`:

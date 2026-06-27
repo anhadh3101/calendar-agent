@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Xpander Agent</title>
+  <title>Google Agent</title>
   <style>
     :root {
       --bg: #faf9f5;
@@ -44,7 +44,7 @@
     .brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
     .brand small { color: var(--muted); font-weight: 400; }
     .actions { display: flex; align-items: center; gap: 8px; }
-    #connectBtn, #newChatBtn, #logoutBtn {
+    #connectBtn, #driveConnectBtn, #newChatBtn, #logoutBtn {
       display: inline-flex; align-items: center; gap: 8px;
       border: 1px solid var(--border-strong);
       background: var(--panel);
@@ -55,13 +55,16 @@
       cursor: pointer;
       transition: all 0.15s ease;
     }
-    #connectBtn:hover, #newChatBtn:hover, #logoutBtn:hover {
+    #connectBtn:hover, #driveConnectBtn:hover, #newChatBtn:hover, #logoutBtn:hover {
       border-color: var(--accent);
       background: var(--panel-2);
     }
     #connectBtn:disabled { opacity: 0.7; cursor: default; }
     #connectBtn.connected { color: var(--ok); background: var(--ok-bg); border-color: rgba(120, 140, 93, 0.45); }
     #connectBtn .ico { width: 16px; height: 16px; }
+    #driveConnectBtn:disabled { opacity: 0.7; cursor: default; }
+    #driveConnectBtn.connected { color: var(--ok); background: var(--ok-bg); border-color: rgba(120, 140, 93, 0.45); }
+    #driveConnectBtn .ico { width: 16px; height: 16px; }
 
     main {
       flex: 1;
@@ -238,11 +241,10 @@
   <header>
     <div class="brand">
       <span class="dot"></span>
-      Xpander Agent
+      Google Agent
       <small id="userTag">&middot; loading&hellip;</small>
     </div>
     <div class="actions">
-      <button id="logoutBtn" title="Sign out">Sign out</button>
       <button id="newChatBtn" title="Start a new conversation">
         <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M12 5v14M5 12h14"></path>
@@ -256,6 +258,13 @@
         </svg>
         <span id="connectLabel">Checking&hellip;</span>
       </button>
+      <button id="driveConnectBtn" type="button">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2z"></path>
+        </svg>
+        <span id="driveConnectLabel">Connect Google Drive</span>
+      </button>
+      <button id="logoutBtn" title="Sign out">Sign out</button>
     </div>
   </header>
 
@@ -291,6 +300,7 @@
     const sendBtn = document.getElementById("sendBtn");
     const connectBtn = document.getElementById("connectBtn");
     const connectLabel = document.getElementById("connectLabel");
+    const driveConnectBtn = document.getElementById("driveConnectBtn");
     const userTag = document.getElementById("userTag");
     const newChatBtn = document.getElementById("newChatBtn");
     const logoutBtn = document.getElementById("logoutBtn");
@@ -894,6 +904,10 @@
       } finally {
         connectBtn.disabled = false;
       }
+    });
+
+    driveConnectBtn.addEventListener("click", () => {
+      // Drive connector — not yet implemented
     });
 
     async function send() {
