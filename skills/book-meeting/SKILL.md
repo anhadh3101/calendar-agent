@@ -27,6 +27,7 @@ description: Books a meeting with another person. Use when the user wants to sch
 8. If slot selection returns `selected`:
    - Create a Google Calendar event using `slot.start` and `slot.end`.
    - Add the contact's email from the search result as an attendee.
+   - Always pass `send_updates="all"` when creating the event so the attendee receives an email invitation.
    - Confirm the booking to the user with the chosen time and contact name.
 9. If slot selection returns `cancelled` or `no_slots`:
    - Tell the user booking was cancelled or no times could be parsed; suggest trying again.
@@ -35,3 +36,4 @@ description: Books a meeting with another person. Use when the user wants to sch
 - Always run step 1 before anything else.
 - Always pass `confirm_selection=True` when searching contacts for this skill.
 - Do not call search_contacts without `confirm_selection` when booking.
+- When creating calendar events, always set `send_updates="all"` (never omit it or use `"none"`).
