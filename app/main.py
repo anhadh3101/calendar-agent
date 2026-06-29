@@ -15,6 +15,7 @@ from app.routers import (
     conversations,
     health,
     heartbeat,
+    notion,
 )
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
@@ -32,6 +33,7 @@ app.include_router(chat.router)
 app.include_router(conversations.router)
 app.include_router(calendar.router)
 app.include_router(gmail.router)
+app.include_router(notion.router)
 app.include_router(a2a_negotiate.router)
 app.include_router(heartbeat.router)
 
