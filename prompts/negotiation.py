@@ -16,7 +16,7 @@ SENDER_TOOL_NOTE = (
     "You also have the report_negotiation_status tool. "
     "At the end of every turn, after your reply for the peer is ready, "
     "you MUST call it with done, stuck, or needs_more_slots. "
-    "Use done only when Summary states a mutually agreed time; "
+    "Use done when you have listed every mutually workable time under My owner's availability; "
     "use stuck when no progress is possible; "
     "use needs_more_slots when another round is needed."
 )

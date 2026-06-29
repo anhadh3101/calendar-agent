@@ -14,7 +14,7 @@ def make_report_negotiation_status_tool():
         """Report whether negotiation should continue after this turn.
 
         Call once at the end of every turn:
-        - done: agreed on a time, or clearly finished successfully
+        - done: all mutually workable times are listed; owners will choose in the UI (do not pick a final time)
         - stuck: no progress possible (no overlap, peer unresponsive, etc.)
         - needs_more_slots: your reply should be sent to the peer for another round
         """

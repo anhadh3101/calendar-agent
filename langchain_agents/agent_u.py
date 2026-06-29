@@ -23,6 +23,7 @@ from composio import Composio
 from composio_langchain import LangchainProvider
 
 from langchain_agents.tools.check_calendar import make_check_calendar_connected_tool
+from langchain_agents.tools.check_gmail import make_check_gmail_connected_tool
 from langchain_agents.tools.negotiation_status import (
     DEFAULT_NEGOTIATION_STATUS,
     REPORT_NEGOTIATION_STATUS_TOOL,
@@ -58,20 +59,33 @@ def validate_environment() -> None:
         raise KeyError(f"Missing required environment variables: {', '.join(missing)}")
 
 
-def get_composio_tools(user_id: str) -> list[Any]:
+def _composio_tools(user_id: str, toolkits: list[str]) -> list[Any]:
     composio = Composio(provider=LangchainProvider())
     session = composio.create(user_id=user_id)
-    session.update(toolkits={"enable": ["googlecalendar"]})
+    session.update(toolkits={"enable": toolkits})
     return session.tools()
 
 
+def get_composio_tools(user_id: str) -> list[Any]:
+    return _composio_tools(user_id, ["googlecalendar"])
+
+
+def get_main_composio_tools(user_id: str) -> list[Any]:
+    return _composio_tools(user_id, ["googlecalendar", "gmail"])
+
+def get_xpander_tools() -> list[Any]:
+    xpander_agent = Agents().get(agent_id=os.getenv("XPANDER_AGENT_ID"))
+    xpander_agent.tools.is_async = False
+    return xpander_agent.tools.functions
+
 def get_agent_tools(user_id: str) -> list[Any]:
-    return get_composio_tools(user_id) + [
+    return get_main_composio_tools(user_id) + [
         make_check_calendar_connected_tool(user_id),
+        make_check_gmail_connected_tool(user_id),
         make_search_contacts_tool(user_id),
         make_select_meeting_slot_tool(),
         make_load_skill_tool(),
-    ]
+    ] + get_xpander_tools()
 
 
 def get_negotiation_tools(

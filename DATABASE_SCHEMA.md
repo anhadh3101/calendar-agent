@@ -24,3 +24,15 @@ create table public.agent_profiles (
   created_at      timestamptz default now(),
   updated_at      timestamptz default now()
 );
+
+
+create table public.conversations (
+  id          uuid primary key,
+  user_id     uuid references auth.users(id) on delete cascade not null,
+  title       text not null default 'New chat',
+  messages    jsonb not null default '[]'::jsonb,
+  updated_at  timestamptz not null default now()
+);
+
+create index conversations_user_updated_idx
+  on public.conversations (user_id, updated_at desc);

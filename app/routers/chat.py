@@ -1,10 +1,12 @@
+import uuid
 from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
+from app.conversation_store import append_messages, exists_for_user, title_from_message
 from app.deps import get_current_user
-from langchain_agents.agent_u import DEFAULT_THREAD_ID, chat, resume_chat
+from langchain_agents.agent_u import chat, resume_chat
 
 router = APIRouter(prefix="/api", tags=["chat"])
 
@@ -27,6 +29,25 @@ class ChatResponse(BaseModel):
     conversation_id: str
 
 
+def _resolve_conversation_id(conversation_id: str | None) -> str:
+    return conversation_id or str(uuid.uuid4())
+
+
+def _persist_assistant_reply(
+    user_id: str, conversation_id: str, result: dict[str, Any]
+) -> None:
+    if result.get("status") != "complete":
+        return
+    reply = result.get("reply")
+    if not reply:
+        return
+    append_messages(
+        user_id,
+        conversation_id,
+        [{"role": "assistant", "content": reply}],
+    )
+
+
 @router.post("/chat", response_model=ChatResponse)
 def chat_endpoint(
     req: ChatRequest,
@@ -39,8 +60,17 @@ def chat_endpoint(
     LangGraph thread so multi-turn context is preserved.
     """
     user_id = user.id
-    thread_id = req.conversation_id or DEFAULT_THREAD_ID
+    thread_id = _resolve_conversation_id(req.conversation_id)
+    is_new = not exists_for_user(user_id, thread_id)
+    append_messages(
+        user_id,
+        thread_id,
+        [{"role": "user", "content": req.message}],
+        title=title_from_message(req.message) if is_new else None,
+    )
     result = chat(req.message, user_id=user_id, thread_id=thread_id)
+    _persist_assistant_reply(user_id, thread_id, result)
+    result["conversation_id"] = thread_id
     return ChatResponse(**result)
 
 
@@ -51,6 +81,8 @@ def chat_resume_endpoint(
 ) -> ChatResponse:
     """Resume the agent after a HITL interrupt (e.g. contact selection)."""
     user_id = user.id
-    thread_id = req.conversation_id or DEFAULT_THREAD_ID
+    thread_id = _resolve_conversation_id(req.conversation_id)
     result = resume_chat(req.resume, user_id=user_id, thread_id=thread_id)
+    _persist_assistant_reply(user_id, thread_id, result)
+    result["conversation_id"] = thread_id
     return ChatResponse(**result)
