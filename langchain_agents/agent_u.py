@@ -22,8 +22,13 @@ os.environ.setdefault(
 from composio import Composio
 from composio_langchain import LangchainProvider
 
+from langchain_agents.tools.ask_notion_agent import (
+    make_ask_notion_agent_tool,
+    parent_thread_id,
+)
 from langchain_agents.tools.check_calendar import make_check_calendar_connected_tool
 from langchain_agents.tools.check_gmail import make_check_gmail_connected_tool
+from langchain_agents.tools.confirm_todos import make_confirm_todos_tool
 from langchain_agents.tools.negotiation_status import (
     DEFAULT_NEGOTIATION_STATUS,
     REPORT_NEGOTIATION_STATUS_TOOL,
@@ -84,7 +89,9 @@ def get_agent_tools(user_id: str) -> list[Any]:
         make_check_gmail_connected_tool(user_id),
         make_search_contacts_tool(user_id),
         make_select_meeting_slot_tool(),
+        make_confirm_todos_tool(),
         make_load_skill_tool(),
+        make_ask_notion_agent_tool(user_id),
     ] + get_xpander_tools()
 
 
@@ -198,10 +205,14 @@ def chat(
     """Run one turn, continuing the conversation identified by ``thread_id``."""
     agent, _ = get_agent_bundle(user_id)
 
-    response = agent.invoke(
-        {"messages": [("user", user_message)]},
-        config=_thread_config(thread_id),
-    )
+    token = parent_thread_id.set(thread_id)
+    try:
+        response = agent.invoke(
+            {"messages": [("user", user_message)]},
+            config=_thread_config(thread_id),
+        )
+    finally:
+        parent_thread_id.reset(token)
     return build_chat_result(agent, response, thread_id, user_id)
 
 
@@ -264,10 +275,14 @@ def resume_chat(
     """Resume a paused graph after human input (e.g. contact selection)."""
     agent, _ = get_agent_bundle(user_id)
 
-    response = agent.invoke(
-        Command(resume=resume_value),
-        config=_thread_config(thread_id),
-    )
+    token = parent_thread_id.set(thread_id)
+    try:
+        response = agent.invoke(
+            Command(resume=resume_value),
+            config=_thread_config(thread_id),
+        )
+    finally:
+        parent_thread_id.reset(token)
     return build_chat_result(agent, response, thread_id, user_id)
 
 
@@ -287,10 +302,14 @@ def stream_chat(
     """Yield LangGraph stream chunks (useful for SSE later)."""
     agent, _ = get_agent_bundle(user_id)
 
-    yield from agent.stream(
-        {"messages": [("user", user_message)]},
-        config=_thread_config(thread_id),
-    )
+    token = parent_thread_id.set(thread_id)
+    try:
+        yield from agent.stream(
+            {"messages": [("user", user_message)]},
+            config=_thread_config(thread_id),
+        )
+    finally:
+        parent_thread_id.reset(token)
 
 
 def main() -> None:
