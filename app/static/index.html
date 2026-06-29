@@ -132,6 +132,11 @@
       font-size: 13px;
       line-height: 1.4;
     }
+    .sidebar-footer {
+      flex: 0 0 auto;
+      padding: 12px;
+      border-top: 1px solid var(--border);
+    }
     .chat-column {
       flex: 1;
       min-width: 0;
@@ -148,27 +153,24 @@
       border-bottom: 1px solid var(--border);
       background: rgba(250, 249, 245, 0.92);
       backdrop-filter: blur(8px);
+      border-bottom: none;
     }
     .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; color: var(--text); }
     .brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
     .brand small { color: var(--muted); font-weight: 400; }
     .actions { display: flex; align-items: center; gap: 8px; }
-    #connectBtn, #gmailConnectBtn, #logoutBtn {
+    #connectBtn, #gmailConnectBtn {
       display: inline-flex; align-items: center; gap: 8px;
       border: 1px solid var(--border-strong);
       background: var(--panel);
       color: var(--text-soft);
-      padding: 9px 14px;
+      padding: 8px;
       border-radius: 10px;
       font-size: 14px;
       cursor: pointer;
       transition: all 0.15s ease;
     }
-    #connectBtn, #gmailConnectBtn {
-      padding: 8px;
-      gap: 0;
-    }
-    #connectBtn:hover, #gmailConnectBtn:hover, #logoutBtn:hover {
+    #connectBtn:hover, #gmailConnectBtn:hover {
       border-color: var(--accent);
       background: var(--panel-2);
     }
@@ -178,10 +180,27 @@
       border-color: rgba(120, 140, 93, 0.45);
     }
     .service-ico { width: 22px; height: 22px; display: block; object-fit: contain; }
-    #gmailConnectBtn:disabled { opacity: 0.55; cursor: not-allowed; }
-    #gmailConnectBtn:hover { border-color: var(--border-strong); background: var(--panel); }
-    #logoutBtn { padding: 9px; gap: 0; }
-    #logoutBtn .ico { width: 16px; height: 16px; }
+    #logoutBtn {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 10px;
+      width: 100%;
+      border: none;
+      background: transparent;
+      color: var(--text-soft);
+      padding: 10px 12px;
+      border-radius: 8px;
+      font: inherit;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    #logoutBtn:hover {
+      background: var(--panel-2);
+      color: var(--text);
+    }
+    #logoutBtn .ico { width: 16px; height: 16px; flex: 0 0 16px; }
 
     main {
       flex: 1;
@@ -210,7 +229,7 @@
     .typing span:nth-child(3) { animation-delay: 0.4s; }
     @keyframes blink { 0%, 80%, 100% { opacity: 0.2; } 40% { opacity: 1; } }
 
-    footer { border-top: 1px solid var(--border); background: rgba(250, 249, 245, 0.92); padding: 16px 0; }
+    footer { border-top: 1px solid var(--border); background: rgba(250, 249, 245, 0.92); padding: 16px 0; border-top: none;}
     .composer { max-width: 760px; margin: 0 auto; padding: 0 20px; display: flex; gap: 10px; align-items: flex-end; }
     textarea {
       flex: 1; resize: none; max-height: 160px;
@@ -373,6 +392,16 @@
       <div class="conversation-list" id="conversationList">
         <div class="sidebar-empty">No conversations yet</div>
       </div>
+      <div class="sidebar-footer">
+        <button id="logoutBtn" type="button" title="Sign out" aria-label="Sign out">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          Sign out
+        </button>
+      </div>
     </aside>
 
     <div class="chat-column">
@@ -385,15 +414,8 @@
       <button id="connectBtn" type="button" disabled title="Checking&hellip;" aria-label="Connect Google Calendar">
         <img class="service-ico" src="/assets/google-calendar.png" alt="" aria-hidden="true" />
       </button>
-      <button id="gmailConnectBtn" type="button" disabled title="Gmail (coming soon)" aria-label="Connect Gmail (coming soon)">
+      <button id="gmailConnectBtn" type="button" disabled title="Checking&hellip;" aria-label="Connect Gmail">
         <img class="service-ico" src="/assets/gmail.png" alt="" aria-hidden="true" />
-      </button>
-      <button id="logoutBtn" type="button" title="Sign out" aria-label="Sign out">
-        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-          <polyline points="16 17 21 12 16 7"></polyline>
-          <line x1="21" y1="12" x2="9" y2="12"></line>
-        </svg>
       </button>
     </div>
   </header>
@@ -464,6 +486,7 @@
 
 
     let statusPoll = null;
+    let gmailStatusPoll = null;
     let heartbeatTimer = null;
     const HEARTBEAT_INTERVAL_MS = 60_000;
 
@@ -603,6 +626,41 @@
 
     function negotiationThreadId(mainId) {
       return mainId + ":a2a";
+    }
+
+    async function buildNegotiationProposal(conversationId) {
+      const fallback = pendingProposal
+        ? `I'd like to schedule a meeting with the following constraints: ${pendingProposal}. Please check your calendar and propose times that work.`
+        : "I would like to schedule a meeting. Please check your calendar and propose available times.";
+
+      if (!conversationId) return fallback;
+
+      try {
+        const res = await authFetch(
+          "/api/conversations/" + encodeURIComponent(conversationId)
+        );
+        if (!res.ok) return fallback;
+
+        const data = await res.json();
+        const userMessages = (data.messages || [])
+          .filter((m) => m.role === "user")
+          .map((m) => (m.content || "").trim())
+          .filter(Boolean);
+
+        if (userMessages.length === 0) return fallback;
+
+        const constraints = userMessages
+          .map((text, i) => `${i + 1}. ${text}`)
+          .join("\n");
+
+        return (
+          "I'd like to schedule a meeting. Here is what my owner has said in this conversation:\n\n" +
+          constraints +
+          "\n\nPlease check your calendar and propose times that work."
+        );
+      } catch {
+        return fallback;
+      }
     }
 
     function myAgentLabel() {
@@ -977,9 +1035,7 @@
 
       const typing = addTyping();
       sendBtn.disabled = true;
-      const proposal = pendingProposal
-        ? `I'd like to schedule a meeting with the following constraints: ${pendingProposal}. Please check your calendar and propose times that work.`
-        : "I would like to schedule a meeting. Please check your calendar and propose available times.";
+      const proposal = await buildNegotiationProposal(conversationId);
       let negotiation = { transcript: [], outcome: "stuck" };
       let transcript = [];
 
@@ -1097,6 +1153,7 @@
       }
       addMessage("bot", data.reply || "(no response)");
       refreshStatus();
+      refreshGmailStatus();
       loadConversationList();
     }
 
@@ -1144,6 +1201,53 @@
         setServiceBtnStatus(connectBtn, "Connect failed \u2014 retry");
       } finally {
         connectBtn.disabled = false;
+      }
+    });
+
+    async function refreshGmailStatus() {
+      try {
+        const res = await authFetch("/api/gmail/status");
+        const data = await res.json();
+        gmailConnectBtn.disabled = false;
+        if (data.connected) {
+          gmailConnectBtn.classList.add("connected");
+          setServiceBtnStatus(gmailConnectBtn, "Gmail connected");
+          if (gmailStatusPoll) { clearInterval(gmailStatusPoll); gmailStatusPoll = null; }
+        } else {
+          gmailConnectBtn.classList.remove("connected");
+          setServiceBtnStatus(gmailConnectBtn, "Connect Gmail");
+        }
+        return data.connected;
+      } catch (e) {
+        gmailConnectBtn.disabled = false;
+        setServiceBtnStatus(gmailConnectBtn, "Connect Gmail");
+        return false;
+      }
+    }
+
+    gmailConnectBtn.addEventListener("click", async () => {
+      if (gmailConnectBtn.classList.contains("connected")) return;
+      gmailConnectBtn.disabled = true;
+      setServiceBtnStatus(gmailConnectBtn, "Opening Gmail\u2026");
+      try {
+        const res = await authFetch("/api/gmail/connect", { method: "POST" });
+        const data = await res.json();
+        if (!res.ok) {
+          setServiceBtnStatus(gmailConnectBtn, data.detail || "Connect failed \u2014 retry");
+          return;
+        }
+        if (data.redirect_url) {
+          window.open(data.redirect_url, "_blank", "noopener");
+          setServiceBtnStatus(gmailConnectBtn, "Waiting for approval\u2026");
+          if (gmailStatusPoll) clearInterval(gmailStatusPoll);
+          gmailStatusPoll = setInterval(refreshGmailStatus, 2500);
+        } else {
+          setServiceBtnStatus(gmailConnectBtn, "Connect failed \u2014 retry");
+        }
+      } catch (e) {
+        setServiceBtnStatus(gmailConnectBtn, "Connect failed \u2014 retry");
+      } finally {
+        gmailConnectBtn.disabled = false;
       }
     });
 
@@ -1223,6 +1327,7 @@
 
     startHeartbeat();
     refreshStatus();
+    refreshGmailStatus();
     bootstrapConversations();
     inputEl.focus();
   </script>

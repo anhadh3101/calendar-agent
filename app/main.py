@@ -11,6 +11,7 @@ from app.routers import (
     auth,
     calendar,
     chat,
+    gmail,
     conversations,
     health,
     heartbeat,
@@ -30,6 +31,7 @@ app.include_router(auth.router)
 app.include_router(chat.router)
 app.include_router(conversations.router)
 app.include_router(calendar.router)
+app.include_router(gmail.router)
 app.include_router(a2a_negotiate.router)
 app.include_router(heartbeat.router)
 
