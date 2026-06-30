@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign in · GAIA</title>
+  <link rel="stylesheet" href="/auth.css" />
+</head>
+<body>
+  <main class="card">
+    <div class="brand">
+      <span class="dot"></span>
+      GAIA
+    </div>
+
+    <h1>Welcome back</h1>
+    <p class="subtitle">Sign in to connect with your agent.</p>
+
+    <form id="loginForm">
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" required autocomplete="email" placeholder="you@example.com" />
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" required autocomplete="current-password" placeholder="Your password" />
+      </div>
+
+      <button class="submit" type="submit" id="submitBtn">Sign in</button>
+      <div id="feedback" class="feedback" hidden></div>
+    </form>
+
+    <p class="footer">No account? <a href="/signup.html">Create one</a></p>
+  </main>
+
+  <script src="/auth.js"></script>
+  <script>
+    const form = document.getElementById("loginForm");
+    const feedback = document.getElementById("feedback");
+    const submitBtn = document.getElementById("submitBtn");
+
+    function showFeedback(type, message) {
+      feedback.hidden = false;
+      feedback.className = "feedback " + type;
+      feedback.textContent = message;
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      feedback.hidden = true;
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Signing in…";
+
+      const payload = {
+        email: document.getElementById("email").value.trim(),
+        password: document.getElementById("password").value,
+      };
+
+      try {
+        const res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          const detail = data.detail;
+          const message = Array.isArray(detail)
+            ? detail.map((item) => item.msg).join(" ")
+            : (detail || "Sign in failed.");
+          showFeedback("error", message);
+          return;
+        }
+
+        showFeedback("success", data.message || "Signed in.");
+        if (data.access_token) {
+          saveSession(data);
+          setTimeout(() => { window.location.href = "/"; }, 600);
+        }
+      } catch (err) {
+        showFeedback("error", "Network error: " + err.message);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Sign in";
+      }
+    });
+  </script>
+</body>
+</html>

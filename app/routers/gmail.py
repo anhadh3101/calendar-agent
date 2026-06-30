@@ -18,8 +18,8 @@ from composio_langchain import LangchainProvider
 
 from app.deps import get_current_user
 
-router = APIRouter(prefix="/api/calendar", tags=["calendar"])
-TOOLKIT = "googlecalendar"
+router = APIRouter(prefix="/api/gmail", tags=["gmail"])
+TOOLKIT = "gmail"
 
 
 def _get_auth_config_id(composio: Composio, toolkit: str) -> str:
@@ -47,11 +47,7 @@ def _get_auth_config_id(composio: Composio, toolkit: str) -> str:
 
 @router.post("/connect")
 def connect(user: Annotated[Any, Depends(get_current_user)]) -> dict:
-    """Start the Google Calendar OAuth flow for this instance's user.
-
-    Returns the Composio-hosted redirect URL. The frontend opens it; once the
-    user grants access, Composio stores the OAuth tokens keyed by ``user_id``.
-    """
+    """Start the Gmail OAuth flow for this instance's user."""
     user_id = user.id
     try:
         composio = Composio(provider=LangchainProvider())
@@ -60,7 +56,7 @@ def connect(user: Annotated[Any, Depends(get_current_user)]) -> dict:
             user_id=user_id,
             auth_config_id=auth_config_id,
         )
-    except Exception as exc:  # noqa: BLE001 - surface a clean error to the client
+    except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=502, detail=f"Composio connect failed: {exc}")
 
     return {
@@ -72,7 +68,7 @@ def connect(user: Annotated[Any, Depends(get_current_user)]) -> dict:
 
 @router.get("/status")
 def status(user: Annotated[Any, Depends(get_current_user)]) -> dict:
-    """Report whether this user has an ACTIVE Google Calendar connection."""
+    """Report whether this user has an ACTIVE Gmail connection."""
     user_id = user.id
     try:
         composio = Composio()

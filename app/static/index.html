@@ -3,30 +3,146 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Xpander Agent</title>
+  <title>GAIA</title>
   <style>
     :root {
-      --bg: #0b0d12;
-      --panel: #141821;
-      --panel-2: #1b212d;
-      --border: #2a3140;
-      --text: #e7ebf3;
-      --muted: #98a2b3;
-      --accent: #6c8cff;
-      --accent-2: #4f6ef7;
-      --user-bubble: #2b3550;
-      --ok: #34d399;
-      --ok-bg: rgba(52, 211, 153, 0.12);
+      --bg: #faf9f5;
+      --panel: #ffffff;
+      --panel-2: #f0eee6;
+      --border: #e8e6dc;
+      --border-strong: #d1cfc5;
+      --text: #141413;
+      --text-soft: #3d3d3a;
+      --muted: #87867f;
+      --accent: #d97757;
+      --accent-2: #c6613f;
+      --user-bubble: #e8e6dc;
+      --ok: #788c5d;
+      --ok-bg: rgba(120, 140, 93, 0.14);
     }
     * { box-sizing: border-box; }
     html, body { height: 100%; margin: 0; }
     body {
-      background: radial-gradient(1200px 600px at 50% -10%, #161b27 0%, var(--bg) 60%);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text-soft);
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .app-layout {
+      display: flex;
+      flex: 1;
+      min-width: 0;
+      min-height: 0;
+    }
+    .sidebar {
+      width: 260px;
+      flex: 0 0 260px;
       display: flex;
       flex-direction: column;
-      height: 100vh;
+      border-right: 1px solid var(--border);
+      background: var(--panel);
+    }
+    .sidebar-top {
+      padding: 14px 12px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-section-label {
+      padding: 10px 16px 4px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    #newChatBtn {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 10px;
+      width: 100%;
+      border: 1px solid rgba(217, 119, 87, 0.28);
+      background: linear-gradient(180deg, rgba(217, 119, 87, 0.14) 0%, rgba(217, 119, 87, 0.08) 100%);
+      color: var(--text);
+      padding: 11px 14px;
+      border-radius: 12px;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+      box-shadow: 0 1px 2px rgba(20, 20, 19, 0.05);
+    }
+    #newChatBtn:hover {
+      border-color: rgba(217, 119, 87, 0.45);
+      background: linear-gradient(180deg, rgba(217, 119, 87, 0.2) 0%, rgba(217, 119, 87, 0.12) 100%);
+      box-shadow: 0 2px 8px rgba(217, 119, 87, 0.12);
+    }
+    #newChatBtn:active {
+      transform: scale(0.98);
+    }
+    #newChatBtn .new-chat-icon {
+      flex: 0 0 28px;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fff;
+      display: grid;
+      place-items: center;
+      box-shadow: 0 1px 3px rgba(198, 97, 63, 0.35);
+    }
+    #newChatBtn .new-chat-icon svg {
+      width: 15px;
+      height: 15px;
+    }
+    .conversation-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+    .conversation-item {
+      width: 100%;
+      text-align: left;
+      border: none;
+      background: transparent;
+      color: var(--text-soft);
+      padding: 10px 12px;
+      border-radius: 8px;
+      font: inherit;
+      font-size: 14px;
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: background 0.15s ease;
+    }
+    .conversation-item:hover {
+      background: var(--panel-2);
+    }
+    .conversation-item.active {
+      background: var(--panel-2);
+      color: var(--text);
+      font-weight: 500;
+    }
+    .sidebar-empty {
+      padding: 12px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .sidebar-footer {
+      flex: 0 0 auto;
+      padding: 12px;
+      border-top: 1px solid var(--border);
+    }
+    .chat-column {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
     }
     header {
       display: flex;
@@ -35,46 +151,102 @@
       gap: 12px;
       padding: 14px 20px;
       border-bottom: 1px solid var(--border);
-      background: rgba(20, 24, 33, 0.7);
+      background: rgba(250, 249, 245, 0.92);
       backdrop-filter: blur(8px);
+      border-bottom: none;
     }
-    .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; }
-    .brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 12px var(--accent); }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; color: var(--text); }
+    .brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
     .brand small { color: var(--muted); font-weight: 400; }
     .actions { display: flex; align-items: center; gap: 8px; }
-    #connectBtn, #newChatBtn {
+    #connectBtn, #gmailConnectBtn, #notionConnectBtn {
       display: inline-flex; align-items: center; gap: 8px;
-      border: 1px solid var(--border);
-      background: var(--panel-2);
-      color: var(--text);
-      padding: 9px 14px;
+      border: 1px solid var(--border-strong);
+      background: var(--panel);
+      color: var(--text-soft);
+      padding: 8px;
       border-radius: 10px;
       font-size: 14px;
       cursor: pointer;
       transition: all 0.15s ease;
     }
-    #connectBtn:hover, #newChatBtn:hover { border-color: var(--accent); }
-    #connectBtn:disabled { opacity: 0.7; cursor: default; }
-    #connectBtn.connected { color: var(--ok); background: var(--ok-bg); border-color: rgba(52,211,153,0.4); }
-    #connectBtn .ico { width: 16px; height: 16px; }
+    #connectBtn:hover, #gmailConnectBtn:hover, #notionConnectBtn:hover {
+      border-color: var(--accent);
+      background: var(--panel-2);
+    }
+    #connectBtn:disabled, #gmailConnectBtn:disabled, #notionConnectBtn:disabled {
+      opacity: 0.7; cursor: default;
+    }
+    #connectBtn.connected, #gmailConnectBtn.connected, #notionConnectBtn.connected {
+      background: var(--ok-bg);
+      border-color: rgba(120, 140, 93, 0.45);
+    }
+    .service-ico { width: 22px; height: 22px; display: block; object-fit: contain; }
+    #logoutBtn {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 10px;
+      width: 100%;
+      border: none;
+      background: transparent;
+      color: var(--text-soft);
+      padding: 10px 12px;
+      border-radius: 8px;
+      font: inherit;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    #logoutBtn:hover {
+      background: var(--panel-2);
+      color: var(--text);
+    }
+    #logoutBtn .ico { width: 16px; height: 16px; flex: 0 0 16px; }
 
     main {
       flex: 1;
       overflow-y: auto;
       padding: 28px 0;
+      min-height: 0;
     }
     .wrap { max-width: 760px; margin: 0 auto; padding: 0 20px; }
-    .msg { display: flex; gap: 14px; margin-bottom: 22px; line-height: 1.55; }
+    .msg { display: flex; gap: 12px; margin-bottom: 24px; line-height: 1.55; align-items: flex-start; }
     .msg .avatar {
-      flex: 0 0 32px; width: 32px; height: 32px; border-radius: 8px;
-      display: grid; place-items: center; font-size: 14px; font-weight: 600;
+      flex: 0 0 36px; width: 36px; height: 36px; border-radius: 10px;
+      display: grid; place-items: center;
+      box-shadow: 0 1px 3px rgba(20, 20, 19, 0.07);
     }
-    .msg.user .avatar { background: var(--user-bubble); }
-    .msg.bot .avatar { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; }
-    .msg .body { padding-top: 4px; white-space: pre-wrap; word-wrap: break-word; }
-    .msg .body a { color: var(--accent); }
+    .msg .avatar svg { width: 18px; height: 18px; }
+    .msg.user .avatar {
+      background: linear-gradient(145deg, #f2f0e8 0%, #e4e2d8 100%);
+      color: var(--text-soft);
+      border: 1px solid rgba(209, 207, 197, 0.55);
+      font-size: 12px; font-weight: 700; letter-spacing: 0.02em;
+    }
+    .msg.bot .avatar {
+      background: linear-gradient(145deg, #e0886a 0%, #d97757 55%, #c6613f 100%);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(217, 119, 87, 0.28);
+    }
+    .msg .body { flex: 1; min-width: 0; }
+    .msg .msg-sender {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 13px; font-weight: 600; letter-spacing: -0.01em;
+      margin-bottom: 5px; line-height: 1.3;
+    }
+    .msg.user .msg-sender { color: var(--text); }
+    .msg.bot .msg-sender { color: var(--accent-2); }
+    .msg.bot .msg-sender .sender-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 2px rgba(217, 119, 87, 0.18);
+    }
+    .msg .msg-content { white-space: pre-wrap; word-wrap: break-word; color: var(--text-soft); }
+    .msg .body a { color: var(--accent-2); }
+    .msg .body a:hover { color: var(--accent); }
     .empty { text-align: center; color: var(--muted); margin-top: 12vh; }
-    .empty h1 { font-size: 26px; margin: 0 0 8px; color: var(--text); }
+    .empty h1 { font-size: 26px; margin: 0 0 8px; color: var(--text); font-weight: 600; }
     .typing span {
       display: inline-block; width: 7px; height: 7px; margin-right: 4px;
       background: var(--muted); border-radius: 50%; animation: blink 1.2s infinite both;
@@ -83,47 +255,276 @@
     .typing span:nth-child(3) { animation-delay: 0.4s; }
     @keyframes blink { 0%, 80%, 100% { opacity: 0.2; } 40% { opacity: 1; } }
 
-    footer { border-top: 1px solid var(--border); background: rgba(20,24,33,0.7); padding: 16px 0; }
+    footer { border-top: 1px solid var(--border); background: rgba(250, 249, 245, 0.92); padding: 16px 0; border-top: none;}
     .composer { max-width: 760px; margin: 0 auto; padding: 0 20px; display: flex; gap: 10px; align-items: flex-end; }
     textarea {
       flex: 1; resize: none; max-height: 160px;
       background: var(--panel); color: var(--text);
-      border: 1px solid var(--border); border-radius: 12px;
+      border: 1px solid var(--border-strong); border-radius: 12px;
       padding: 12px 14px; font: inherit; line-height: 1.4;
       outline: none;
+      box-shadow: 0 1px 2px rgba(20, 20, 19, 0.04);
     }
-    textarea:focus { border-color: var(--accent); }
+    textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.15); }
     #sendBtn {
       width: 44px; height: 44px; flex: 0 0 44px;
       border: none; border-radius: 12px; cursor: pointer;
-      background: var(--accent-2); color: #fff; display: grid; place-items: center;
+      background: var(--accent); color: #fff; display: grid; place-items: center;
       transition: background 0.15s ease;
     }
-    #sendBtn:hover { background: var(--accent); }
+    #sendBtn:hover { background: var(--accent-2); }
     #sendBtn:disabled { opacity: 0.5; cursor: default; }
     .hint { max-width: 760px; margin: 8px auto 0; padding: 0 20px; color: var(--muted); font-size: 12px; text-align: center; }
+
+    .contact-picker,
+    .slot-picker {
+      margin-top: 8px;
+      padding: 12px;
+      border: 1px solid var(--border-strong);
+      border-radius: 10px;
+      background: var(--panel);
+    }
+    .contact-picker h4,
+    .slot-picker h4 {
+      margin: 0 0 10px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .contact-picker .contact-row,
+    .slot-picker .slot-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .contact-picker .contact-row:last-child,
+    .slot-picker .slot-row:last-child { border-bottom: none; }
+    .contact-picker .contact-row.unavailable { opacity: 0.65; }
+    .contact-picker .contact-info,
+    .slot-picker .slot-info { flex: 1; min-width: 0; }
+    .contact-picker .contact-name,
+    .slot-picker .slot-label {
+      font-weight: 600;
+      color: var(--text);
+      font-size: 14px;
+    }
+    .contact-picker .contact-meta {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .contact-picker .contact-meta.unavailable {
+      color: #b45309;
+    }
+    .contact-picker .contact-select,
+    .slot-picker .slot-select {
+      flex: 0 0 auto;
+      border: 1px solid var(--border-strong);
+      background: var(--panel-2);
+      color: var(--text-soft);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .contact-picker .contact-select:hover:not(:disabled),
+    .slot-picker .slot-select:hover:not(:disabled) {
+      border-color: var(--accent);
+      background: var(--panel);
+    }
+    .contact-picker .contact-select:disabled,
+    .slot-picker .slot-select:disabled { opacity: 0.6; cursor: default; }
+    .contact-picker-actions,
+    .slot-picker-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+    .contact-picker .contact-cancel,
+    .slot-picker .slot-cancel {
+      border: 1px solid var(--border-strong);
+      background: var(--panel);
+      color: var(--muted);
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .contact-picker .contact-cancel:hover:not(:disabled),
+    .slot-picker .slot-cancel:hover:not(:disabled) {
+      border-color: var(--border-strong);
+      color: var(--text-soft);
+      background: var(--panel-2);
+    }
+    .contact-picker .contact-cancel:disabled,
+    .slot-picker .slot-cancel:disabled { opacity: 0.6; cursor: default; }
+
+    .todo-picker {
+      margin-top: 8px;
+      padding: 12px;
+      border: 1px solid var(--border-strong);
+      border-radius: 10px;
+      background: var(--panel);
+    }
+    .todo-picker h4 {
+      margin: 0 0 4px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .todo-picker .todo-sub {
+      margin: 0 0 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .todo-picker .todo-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .todo-picker .todo-row:last-of-type { border-bottom: none; }
+    .todo-picker .todo-row input[type="checkbox"] {
+      margin-top: 3px;
+      width: 16px;
+      height: 16px;
+      flex: 0 0 auto;
+      cursor: pointer;
+      accent-color: var(--accent);
+    }
+    .todo-picker .todo-info { flex: 1; min-width: 0; }
+    .todo-picker .todo-title {
+      font-weight: 600;
+      color: var(--text);
+      font-size: 14px;
+    }
+    .todo-picker .todo-meta {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .todo-picker-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+    .todo-picker .todo-cancel {
+      border: 1px solid var(--border-strong);
+      background: var(--panel);
+      color: var(--muted);
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .todo-picker .todo-cancel:hover:not(:disabled) {
+      color: var(--text-soft);
+      background: var(--panel-2);
+    }
+    .todo-picker .todo-confirm {
+      border: 1px solid var(--accent);
+      background: var(--accent);
+      color: #fff;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .todo-picker .todo-confirm:hover:not(:disabled) { opacity: 0.9; }
+    .todo-picker button:disabled { opacity: 0.6; cursor: default; }
+
+    .a2a-panel {
+      margin-bottom: 22px;
+      padding: 14px 16px;
+      border: 1px solid var(--border-strong);
+      border-radius: 12px;
+      background: var(--panel-2);
+    }
+    .a2a-header {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 12px;
+    }
+    .a2a-thread { display: flex; flex-direction: column; gap: 12px; }
+    .a2a-turn { line-height: 1.5; }
+    .a2a-agent-label {
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .a2a-me .a2a-agent-label { color: var(--accent-2); }
+    .a2a-peer .a2a-agent-label { color: var(--ok); }
+    .a2a-body {
+      font-size: 14px;
+      color: var(--text-soft);
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .a2a-body a { color: var(--accent-2); }
+    .a2a-body a:hover { color: var(--accent); }
   </style>
 </head>
 <body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="sidebar-top">
+        <button id="newChatBtn" type="button" title="Start a new conversation">
+          <span class="new-chat-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 20h9"></path>
+              <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+            </svg>
+          </span>
+          New chat
+        </button>
+      </div>
+      <div class="sidebar-section-label">Recent</div>
+      <div class="conversation-list" id="conversationList">
+        <div class="sidebar-empty">No conversations yet</div>
+      </div>
+      <div class="sidebar-footer">
+        <button id="logoutBtn" type="button" title="Sign out" aria-label="Sign out">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          Sign out
+        </button>
+      </div>
+    </aside>
+
+    <div class="chat-column">
   <header>
     <div class="brand">
-      <span class="dot"></span>
-      Xpander Agent
+      GAIA
       <small id="userTag">&middot; loading&hellip;</small>
     </div>
     <div class="actions">
-      <button id="newChatBtn" title="Start a new conversation">
-        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 5v14M5 12h14"></path>
-        </svg>
-        New Chat
+      <button id="connectBtn" type="button" disabled title="Checking&hellip;" aria-label="Connect Google Calendar">
+        <img class="service-ico" src="/assets/google-calendar.png" alt="" aria-hidden="true" />
       </button>
-      <button id="connectBtn" disabled>
-        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="3" y="4" width="18" height="18" rx="2"></rect>
-          <path d="M16 2v4M8 2v4M3 10h18"></path>
-        </svg>
-        <span id="connectLabel">Checking&hellip;</span>
+      <button id="gmailConnectBtn" type="button" disabled title="Checking&hellip;" aria-label="Connect Gmail">
+        <img class="service-ico" src="/assets/gmail.png" alt="" aria-hidden="true" />
+      </button>
+      <button id="notionConnectBtn" type="button" disabled title="Checking&hellip;" aria-label="Connect Notion">
+        <img class="service-ico" src="/assets/notion.png" alt="" aria-hidden="true" />
       </button>
     </div>
   </header>
@@ -139,38 +540,313 @@
 
   <footer>
     <div class="composer">
-      <textarea id="input" rows="1" placeholder="Message the agent&hellip;"></textarea>
+      <textarea id="input" rows="1" placeholder="Message GAIA&hellip;"></textarea>
       <button id="sendBtn" title="Send">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
         </svg>
       </button>
     </div>
-    <div class="hint">The agent uses tools via Composio. Connection is stored per user, not in this app.</div>
+    <div class="hint">GAIA is an AI agent. It can make mistakes.</div>
   </footer>
+    </div>
+  </div>
 
+  <script src="/auth.js"></script>
   <script>
+    if (!requireAuth()) {
+      throw new Error("redirecting to login");
+    }
+
     const messagesEl = document.getElementById("messages");
     const inputEl = document.getElementById("input");
     const sendBtn = document.getElementById("sendBtn");
     const connectBtn = document.getElementById("connectBtn");
-    const connectLabel = document.getElementById("connectLabel");
+    const gmailConnectBtn = document.getElementById("gmailConnectBtn");
+    const notionConnectBtn = document.getElementById("notionConnectBtn");
+
+    function setServiceBtnStatus(btn, label) {
+      btn.title = label;
+      btn.setAttribute("aria-label", label);
+    }
     const userTag = document.getElementById("userTag");
     const newChatBtn = document.getElementById("newChatBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const conversationListEl = document.getElementById("conversationList");
+
+    function setUserTag() {
+      const name = displayName(getSession());
+      if (name) userTag.textContent = "\u00B7 " + name;
+    }
+
+    async function loadUser() {
+      setUserTag();
+      try {
+        const res = await authFetch("/api/auth/me");
+        if (!res.ok) return;
+        const data = await res.json();
+        updateSessionProfile(data);
+        setUserTag();
+      } catch {
+        // keep whatever is in session storage
+      }
+    }
+
+    loadUser();
+
 
     let statusPoll = null;
+    let gmailStatusPoll = null;
+    let notionStatusPoll = null;
+    let heartbeatTimer = null;
+    const HEARTBEAT_INTERVAL_MS = 60_000;
+
+    async function sendHeartbeat() {
+      try {
+        await authFetch("/api/heartbeat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agent_url: window.location.origin }),
+        });
+      } catch {
+        // ignore transient network errors; next interval will retry
+      }
+    }
+
+    function startHeartbeat() {
+      sendHeartbeat();
+      if (heartbeatTimer) clearInterval(heartbeatTimer);
+      heartbeatTimer = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL_MS);
+    }
 
     // A conversation id ties messages to a single LangGraph thread on the server,
-    // so multi-turn context is preserved. Persisted so a refresh keeps the thread.
+    // so multi-turn context is preserved.
     function newConversationId() {
       const id =
         (crypto.randomUUID && crypto.randomUUID()) ||
         "conv-" + Date.now() + "-" + Math.random().toString(16).slice(2);
-      localStorage.setItem("conversationId", id);
+      localStorage.setItem("activeConversationId", id);
       return id;
     }
-    let conversationId =
-      localStorage.getItem("conversationId") || newConversationId();
+    let conversationId = null;
+    let pendingProposal = null;
+    let loadingConversation = false;
+
+    function ensureConversationId() {
+      if (!conversationId) conversationId = newConversationId();
+      return conversationId;
+    }
+
+    function showEmptyState() {
+      messagesEl.innerHTML =
+        '<div class="empty" id="empty"><h1>How can I help?</h1>' +
+        "<p>Ask about your calendar, or connect Google Calendar to get started.</p></div>";
+    }
+
+    function clearMessages() {
+      showEmptyState();
+    }
+
+    function setActiveConversationItem(id) {
+      conversationListEl.querySelectorAll(".conversation-item").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.id === id);
+      });
+    }
+
+    function renderConversationList(conversations) {
+      if (!conversations.length) {
+        conversationListEl.innerHTML =
+          '<div class="sidebar-empty">No conversations yet</div>';
+        return;
+      }
+      conversationListEl.innerHTML = "";
+      conversations.forEach((conv) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "conversation-item";
+        btn.dataset.id = conv.id;
+        btn.textContent = conv.title || "New chat";
+        btn.title = conv.title || "New chat";
+        if (conv.id === conversationId) btn.classList.add("active");
+        btn.addEventListener("click", () => openConversation(conv.id));
+        conversationListEl.appendChild(btn);
+      });
+    }
+
+    async function loadConversationList() {
+      try {
+        const res = await authFetch("/api/conversations");
+        if (!res.ok) return;
+        const data = await res.json();
+        renderConversationList(data);
+      } catch {
+        // sidebar stays as-is on transient errors
+      }
+    }
+
+    async function openConversation(id) {
+      if (loadingConversation || id === conversationId) return;
+      loadingConversation = true;
+      try {
+        const res = await authFetch("/api/conversations/" + encodeURIComponent(id));
+        if (!res.ok) return;
+        const data = await res.json();
+        conversationId = data.id;
+        localStorage.setItem("activeConversationId", conversationId);
+        pendingProposal = null;
+        messagesEl.innerHTML = "";
+        data.messages.forEach((m) => {
+          addMessage(m.role === "user" ? "user" : "bot", m.content);
+        });
+        if (!data.messages.length) showEmptyState();
+        setActiveConversationItem(conversationId);
+        inputEl.focus();
+      } catch {
+        // keep current view on error
+      } finally {
+        loadingConversation = false;
+      }
+    }
+
+    async function bootstrapConversations() {
+      await loadConversationList();
+      const savedId = localStorage.getItem("activeConversationId");
+      if (savedId) {
+        try {
+          const res = await authFetch(
+            "/api/conversations/" + encodeURIComponent(savedId)
+          );
+          if (res.ok) {
+            const data = await res.json();
+            conversationId = data.id;
+            messagesEl.innerHTML = "";
+            data.messages.forEach((m) => {
+              addMessage(m.role === "user" ? "user" : "bot", m.content);
+            });
+            if (!data.messages.length) showEmptyState();
+            setActiveConversationItem(conversationId);
+            return;
+          }
+        } catch {
+          // fall through to new chat
+        }
+      }
+      conversationId = newConversationId();
+      showEmptyState();
+    }
+
+    function negotiationThreadId(mainId) {
+      return mainId + ":a2a";
+    }
+
+    async function buildNegotiationProposal(conversationId) {
+      const fallback = pendingProposal
+        ? `I'd like to schedule a meeting with the following constraints: ${pendingProposal}. Please check your calendar and propose times that work.`
+        : "I would like to schedule a meeting. Please check your calendar and propose available times.";
+
+      if (!conversationId) return fallback;
+
+      try {
+        const res = await authFetch(
+          "/api/conversations/" + encodeURIComponent(conversationId)
+        );
+        if (!res.ok) return fallback;
+
+        const data = await res.json();
+        const userMessages = (data.messages || [])
+          .filter((m) => m.role === "user")
+          .map((m) => (m.content || "").trim())
+          .filter(Boolean);
+
+        if (userMessages.length === 0) return fallback;
+
+        const constraints = userMessages
+          .map((text, i) => `${i + 1}. ${text}`)
+          .join("\n");
+
+        return (
+          "I'd like to schedule a meeting. Here is what my owner has said in this conversation:\n\n" +
+          constraints +
+          "\n\nPlease check your calendar and propose times that work."
+        );
+      } catch {
+        return fallback;
+      }
+    }
+
+    function myAgentLabel() {
+      const name = displayName(getSession());
+      return name ? name + "'s agent" : "Your agent";
+    }
+
+    function peerAgentLabel(contact) {
+      const name = contact.display_name || contact.email;
+      return name ? name + "'s agent" : "Their agent";
+    }
+
+    function formatNegotiationText(transcript, labels) {
+      const myLabel = labels?.myAgent || "Your agent";
+      const peerLabel = labels?.peerAgent || "Their agent";
+      return transcript
+        .map((t) => {
+          const who = t.from === "me" ? myLabel : peerLabel;
+          return who + ": " + (t.text || "");
+        })
+        .join("\n\n");
+    }
+
+    function inferNegotiationOutcome(transcript) {
+      const withStatus = transcript.filter((t) => t.from === "me" && t.status);
+      if (withStatus.length === 0) return "stuck";
+      return withStatus[withStatus.length - 1].status;
+    }
+
+    function renderA2AThread(transcript, labels) {
+      const empty = document.getElementById("empty");
+      if (empty) empty.remove();
+
+      const panel = document.createElement("div");
+      panel.className = "a2a-panel";
+
+      const header = document.createElement("div");
+      header.className = "a2a-header";
+      header.textContent = "Agent-to-agent negotiation";
+      panel.appendChild(header);
+
+      const thread = document.createElement("div");
+      thread.className = "a2a-thread";
+
+      transcript.forEach((t) => {
+        const isMine = t.from === "me";
+        const turn = document.createElement("div");
+        turn.className = "a2a-turn " + (isMine ? "a2a-me" : "a2a-peer");
+
+        const label = document.createElement("div");
+        label.className = "a2a-agent-label";
+        label.textContent = isMine ? labels.myAgent : labels.peerAgent;
+
+        const body = document.createElement("div");
+        body.className = "a2a-body";
+        body.innerHTML = renderContent(t.text || "");
+
+        turn.appendChild(label);
+        turn.appendChild(body);
+        thread.appendChild(turn);
+      });
+
+      panel.appendChild(thread);
+      messagesEl.appendChild(panel);
+      document.getElementById("main").scrollTop = document.getElementById("main").scrollHeight;
+    }
+
+    function reenableContactPicker(pickerEl, btn) {
+      pickerEl.querySelectorAll(".contact-select").forEach((b) => {
+        if (b.textContent !== "Unavailable") b.disabled = false;
+      });
+      const cancelBtn = pickerEl.querySelector(".contact-cancel");
+      if (cancelBtn) cancelBtn.disabled = false;
+      if (btn) btn.textContent = "Select";
+    }
 
     function escapeHtml(str) {
       const div = document.createElement("div");
@@ -187,22 +863,84 @@
       );
     }
 
+    const BOT_AVATAR_SVG =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z"></path>' +
+      '<path d="M5 19l1 3 1-3 3-1-3-1-1-3-1 3-3 1 3 1z"></path>' +
+      '<path d="M19 13l.75 2.25L22 16l-2.25.75L19 19l-.75-2.25L16 16l2.25-.75L19 13z"></path>' +
+      "</svg>";
+    const USER_AVATAR_SVG =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>' +
+      '<circle cx="12" cy="7" r="4"></circle>' +
+      "</svg>";
+
+    function userInitials() {
+      const name = displayName(getSession());
+      if (!name) return "";
+      const parts = name.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      }
+      return parts[0].slice(0, 2).toUpperCase();
+    }
+
+    function createAvatar(role) {
+      const avatar = document.createElement("div");
+      avatar.className = "avatar";
+      if (role === "user") {
+        const initials = userInitials();
+        if (initials) {
+          avatar.textContent = initials;
+          avatar.setAttribute("aria-label", "You");
+        } else {
+          avatar.innerHTML = USER_AVATAR_SVG;
+          avatar.setAttribute("aria-label", "You");
+        }
+      } else {
+        avatar.innerHTML = BOT_AVATAR_SVG;
+        avatar.setAttribute("aria-label", "GAIA");
+      }
+      return avatar;
+    }
+
+    function createSenderLabel(role) {
+      const label = document.createElement("div");
+      label.className = "msg-sender";
+      if (role === "user") {
+        label.textContent = "You";
+      } else {
+        const dot = document.createElement("span");
+        dot.className = "sender-dot";
+        dot.setAttribute("aria-hidden", "true");
+        label.appendChild(dot);
+        label.appendChild(document.createTextNode("GAIA"));
+      }
+      return label;
+    }
+
+    function createMessageBody(role) {
+      const body = document.createElement("div");
+      body.className = "body";
+      body.appendChild(createSenderLabel(role));
+      return body;
+    }
+
     function addMessage(role, text) {
       const empty = document.getElementById("empty");
       if (empty) empty.remove();
       const msg = document.createElement("div");
       msg.className = `msg ${role}`;
-      const avatar = document.createElement("div");
-      avatar.className = "avatar";
-      avatar.textContent = role === "user" ? "You" : "AI";
-      const body = document.createElement("div");
-      body.className = "body";
-      body.innerHTML = renderContent(text);
-      msg.appendChild(avatar);
+      const body = createMessageBody(role);
+      const content = document.createElement("div");
+      content.className = "msg-content";
+      content.innerHTML = renderContent(text);
+      body.appendChild(content);
+      msg.appendChild(createAvatar(role));
       msg.appendChild(body);
       messagesEl.appendChild(msg);
       document.getElementById("main").scrollTop = document.getElementById("main").scrollHeight;
-      return body;
+      return content;
     }
 
     function addTyping() {
@@ -210,31 +948,571 @@
       if (empty) empty.remove();
       const msg = document.createElement("div");
       msg.className = "msg bot";
-      msg.innerHTML =
-        '<div class="avatar">AI</div><div class="body"><span class="typing"><span></span><span></span><span></span></span></div>';
+      const body = createMessageBody("bot");
+      const content = document.createElement("div");
+      content.className = "msg-content";
+      content.innerHTML = '<span class="typing"><span></span><span></span><span></span></span>';
+      body.appendChild(content);
+      msg.appendChild(createAvatar("bot"));
+      msg.appendChild(body);
       messagesEl.appendChild(msg);
       document.getElementById("main").scrollTop = document.getElementById("main").scrollHeight;
       return msg;
     }
 
+    function showContactPicker(interruptPayload) {
+      const empty = document.getElementById("empty");
+      if (empty) empty.remove();
+
+      const msg = document.createElement("div");
+      msg.className = "msg bot";
+      const body = createMessageBody("bot");
+
+      const picker = document.createElement("div");
+      picker.className = "contact-picker";
+
+      const heading = document.createElement("h4");
+      const query = interruptPayload.query || "this person";
+      heading.textContent = "Select a contact for \"" + query + "\":";
+      picker.appendChild(heading);
+
+      const matches = interruptPayload.matches || [];
+      if (matches.length === 0) {
+        picker.appendChild(document.createTextNode("No contacts found."));
+      }
+
+      matches.forEach((contact) => {
+        const selectable = contact.selectable !== false;
+        const row = document.createElement("div");
+        row.className = "contact-row" + (selectable ? "" : " unavailable");
+
+        const info = document.createElement("div");
+        info.className = "contact-info";
+
+        const nameEl = document.createElement("div");
+        nameEl.className = "contact-name";
+        nameEl.textContent = contact.display_name || contact.email || "Unknown";
+
+        const metaEl = document.createElement("div");
+        metaEl.className = "contact-meta" + (selectable ? "" : " unavailable");
+        if (!selectable) {
+          metaEl.textContent = contact.unavailable_reason || "Agent is down";
+        } else {
+          const parts = [];
+          if (contact.email) parts.push(contact.email);
+          if (contact.status) parts.push(contact.status);
+          metaEl.textContent = parts.join(" \u00B7 ");
+        }
+
+        info.appendChild(nameEl);
+        info.appendChild(metaEl);
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "contact-select";
+        btn.textContent = selectable ? "Select" : "Unavailable";
+        btn.disabled = !selectable;
+        if (selectable) {
+          btn.addEventListener("click", () => resumeContactSelection(contact, btn, picker));
+        }
+
+        row.appendChild(info);
+        row.appendChild(btn);
+        picker.appendChild(row);
+      });
+
+      const actions = document.createElement("div");
+      actions.className = "contact-picker-actions";
+      const cancelBtn = document.createElement("button");
+      cancelBtn.type = "button";
+      cancelBtn.className = "contact-cancel";
+      cancelBtn.textContent = "Cancel";
+      cancelBtn.addEventListener("click", () => cancelContactSelection(picker, cancelBtn));
+      actions.appendChild(cancelBtn);
+      picker.appendChild(actions);
+
+      body.appendChild(picker);
+      msg.appendChild(createAvatar("bot"));
+      msg.appendChild(body);
+      messagesEl.appendChild(msg);
+      document.getElementById("main").scrollTop = document.getElementById("main").scrollHeight;
+    }
+
+    function showSlotPicker(interruptPayload) {
+      const empty = document.getElementById("empty");
+      if (empty) empty.remove();
+
+      const msg = document.createElement("div");
+      msg.className = "msg bot";
+      const body = createMessageBody("bot");
+
+      const picker = document.createElement("div");
+      picker.className = "slot-picker";
+
+      const heading = document.createElement("h4");
+      heading.textContent = "Select a meeting time:";
+      picker.appendChild(heading);
+
+      const slots = interruptPayload.slots || [];
+      if (slots.length === 0) {
+        picker.appendChild(document.createTextNode("No times available."));
+      }
+
+      slots.forEach((slot) => {
+        const row = document.createElement("div");
+        row.className = "slot-row";
+
+        const info = document.createElement("div");
+        info.className = "slot-info";
+
+        const labelEl = document.createElement("div");
+        labelEl.className = "slot-label";
+        labelEl.textContent = slot.label || slot.id || "Unknown time";
+
+        info.appendChild(labelEl);
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "slot-select";
+        btn.textContent = "Select";
+        btn.addEventListener("click", () => resumeSlotSelection(slot, btn, picker));
+
+        row.appendChild(info);
+        row.appendChild(btn);
+        picker.appendChild(row);
+      });
+
+      const actions = document.createElement("div");
+      actions.className = "slot-picker-actions";
+      const cancelBtn = document.createElement("button");
+      cancelBtn.type = "button";
+      cancelBtn.className = "slot-cancel";
+      cancelBtn.textContent = "Cancel";
+      cancelBtn.addEventListener("click", () => cancelSlotSelection(picker, cancelBtn));
+      actions.appendChild(cancelBtn);
+      picker.appendChild(actions);
+
+      body.appendChild(picker);
+      msg.appendChild(createAvatar("bot"));
+      msg.appendChild(body);
+      messagesEl.appendChild(msg);
+      document.getElementById("main").scrollTop = document.getElementById("main").scrollHeight;
+    }
+
+    function showTodoConfirm(interruptPayload) {
+      const empty = document.getElementById("empty");
+      if (empty) empty.remove();
+
+      const msg = document.createElement("div");
+      msg.className = "msg bot";
+      const body = createMessageBody("bot");
+
+      const picker = document.createElement("div");
+      picker.className = "todo-picker";
+
+      const heading = document.createElement("h4");
+      heading.textContent = "Add these to your to-do list?";
+      picker.appendChild(heading);
+
+      const sub = document.createElement("p");
+      sub.className = "todo-sub";
+      sub.textContent = "Uncheck anything you don't want, then confirm.";
+      picker.appendChild(sub);
+
+      const todos = interruptPayload.todos || [];
+      if (todos.length === 0) {
+        picker.appendChild(document.createTextNode("No to-dos to add."));
+      }
+
+      const checkboxes = [];
+      todos.forEach((todo) => {
+        const row = document.createElement("label");
+        row.className = "todo-row";
+
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.checked = true;
+        cb.value = todo.id;
+        checkboxes.push(cb);
+
+        const info = document.createElement("div");
+        info.className = "todo-info";
+
+        const titleEl = document.createElement("div");
+        titleEl.className = "todo-title";
+        titleEl.textContent = todo.title || todo.id || "Untitled task";
+        info.appendChild(titleEl);
+
+        const metaParts = [];
+        if (todo.note) metaParts.push(todo.note);
+        if (todo.source) metaParts.push("From: " + todo.source);
+        if (metaParts.length) {
+          const metaEl = document.createElement("div");
+          metaEl.className = "todo-meta";
+          metaEl.textContent = metaParts.join(" \u00B7 ");
+          info.appendChild(metaEl);
+        }
+
+        row.appendChild(cb);
+        row.appendChild(info);
+        picker.appendChild(row);
+      });
+
+      const actions = document.createElement("div");
+      actions.className = "todo-picker-actions";
+
+      const cancelBtn = document.createElement("button");
+      cancelBtn.type = "button";
+      cancelBtn.className = "todo-cancel";
+      cancelBtn.textContent = "Cancel";
+      cancelBtn.addEventListener("click", () => cancelTodoConfirmation(picker, cancelBtn));
+
+      const confirmBtn = document.createElement("button");
+      confirmBtn.type = "button";
+      confirmBtn.className = "todo-confirm";
+      confirmBtn.textContent = "Add to to-do list";
+      confirmBtn.addEventListener("click", () =>
+        resumeTodoConfirmation(checkboxes, confirmBtn, picker)
+      );
+
+      actions.appendChild(cancelBtn);
+      actions.appendChild(confirmBtn);
+      picker.appendChild(actions);
+
+      body.appendChild(picker);
+      msg.appendChild(createAvatar("bot"));
+      msg.appendChild(body);
+      messagesEl.appendChild(msg);
+      document.getElementById("main").scrollTop = document.getElementById("main").scrollHeight;
+    }
+
+    async function resumeTodoConfirmation(checkboxes, btn, pickerEl) {
+      const approvedIds = checkboxes.filter((cb) => cb.checked).map((cb) => cb.value);
+      disablePicker(pickerEl);
+      btn.textContent = "Adding\u2026";
+
+      const typing = addTyping();
+      sendBtn.disabled = true;
+
+      try {
+        const res = await authFetch("/api/chat/resume", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conversation_id: conversationId,
+            resume: { approved_ids: approvedIds },
+          }),
+        });
+
+        typing.remove();
+
+        if (!res.ok) {
+          addMessage("bot", "Error resuming chat: the server returned " + res.status + ".");
+          pickerEl.querySelectorAll("button").forEach((b) => { b.disabled = false; });
+          btn.textContent = "Add to to-do list";
+          return;
+        }
+
+        const data = await res.json();
+        handleChatResponse(data);
+      } catch (e) {
+        typing.remove();
+        addMessage("bot", "Network error: " + e.message);
+        pickerEl.querySelectorAll("button").forEach((b) => { b.disabled = false; });
+        btn.textContent = "Add to to-do list";
+      } finally {
+        sendBtn.disabled = false;
+        inputEl.focus();
+      }
+    }
+
+    async function cancelTodoConfirmation(pickerEl, cancelBtn) {
+      disablePicker(pickerEl);
+      cancelBtn.textContent = "Cancelling\u2026";
+
+      const typing = addTyping();
+      sendBtn.disabled = true;
+
+      try {
+        const res = await authFetch("/api/chat/resume", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conversation_id: conversationId,
+            resume: { cancelled: true },
+          }),
+        });
+
+        typing.remove();
+
+        if (!res.ok) {
+          addMessage("bot", "Error: could not cancel.");
+          cancelBtn.disabled = false;
+          cancelBtn.textContent = "Cancel";
+          return;
+        }
+
+        const data = await res.json();
+        handleChatResponse(data);
+      } catch (e) {
+        typing.remove();
+        addMessage("bot", "Network error: " + e.message);
+        cancelBtn.disabled = false;
+        cancelBtn.textContent = "Cancel";
+      } finally {
+        sendBtn.disabled = false;
+        inputEl.focus();
+      }
+    }
+
+    function disablePicker(pickerEl) {
+      pickerEl.querySelectorAll("button").forEach((b) => {
+        b.disabled = true;
+      });
+    }
+
+    async function resumeSlotSelection(slot, btn, pickerEl) {
+      disablePicker(pickerEl);
+      btn.textContent = "Booking\u2026";
+
+      const typing = addTyping();
+      sendBtn.disabled = true;
+
+      try {
+        const res = await authFetch("/api/chat/resume", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conversation_id: conversationId,
+            resume: { slot_id: slot.id },
+          }),
+        });
+
+        typing.remove();
+
+        if (!res.ok) {
+          addMessage("bot", "Error resuming chat: the server returned " + res.status + ".");
+          pickerEl.querySelectorAll("button").forEach((b) => {
+            if (b.classList.contains("slot-select")) {
+              b.disabled = false;
+              b.textContent = "Select";
+            } else if (b.classList.contains("slot-cancel")) {
+              b.disabled = false;
+            }
+          });
+          return;
+        }
+
+        const data = await res.json();
+        handleChatResponse(data);
+      } catch (e) {
+        typing.remove();
+        addMessage("bot", "Network error: " + e.message);
+        pickerEl.querySelectorAll("button").forEach((b) => {
+          b.disabled = false;
+        });
+        btn.textContent = "Select";
+      } finally {
+        sendBtn.disabled = false;
+        inputEl.focus();
+      }
+    }
+
+    async function cancelSlotSelection(pickerEl, cancelBtn) {
+      disablePicker(pickerEl);
+      cancelBtn.textContent = "Cancelling\u2026";
+
+      const typing = addTyping();
+      sendBtn.disabled = true;
+
+      try {
+        const res = await authFetch("/api/chat/resume", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conversation_id: conversationId,
+            resume: { cancelled: true },
+          }),
+        });
+
+        typing.remove();
+
+        if (!res.ok) {
+          addMessage("bot", "Error: could not cancel.");
+          cancelBtn.disabled = false;
+          cancelBtn.textContent = "Cancel";
+          return;
+        }
+
+        const data = await res.json();
+        handleChatResponse(data);
+      } catch (e) {
+        typing.remove();
+        addMessage("bot", "Network error: " + e.message);
+        cancelBtn.disabled = false;
+        cancelBtn.textContent = "Cancel";
+      } finally {
+        sendBtn.disabled = false;
+        inputEl.focus();
+      }
+    }
+
+    function disableContactPicker(pickerEl) {
+      pickerEl.querySelectorAll("button").forEach((b) => {
+        b.disabled = true;
+      });
+    }
+
+    async function resumeContactSelection(contact, btn, pickerEl) {
+      disableContactPicker(pickerEl);
+      btn.textContent = "Negotiating\u2026";
+
+      const typing = addTyping();
+      sendBtn.disabled = true;
+      const proposal = await buildNegotiationProposal(conversationId);
+      let negotiation = { transcript: [], outcome: "stuck" };
+      let transcript = [];
+
+      try {
+        const negoRes = await authFetch("/api/a2a/start", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            peer_url: contact.agent_url,
+            proposal,
+            thread_id: negotiationThreadId(conversationId),
+          }),
+        });
+
+        const agentLabels = {
+          myAgent: myAgentLabel(),
+          peerAgent: peerAgentLabel(contact),
+        };
+
+        if (negoRes.ok) {
+          const negoData = await negoRes.json();
+          transcript = negoData.transcript || [];
+          negotiation = {
+            transcript,
+            outcome: inferNegotiationOutcome(transcript),
+          };
+        }
+
+        const res = await authFetch("/api/chat/resume", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conversation_id: conversationId,
+            resume: {
+              contact_id: contact.id,
+              negotiation,
+            },
+          }),
+        });
+
+        typing.remove();
+
+        if (!negoRes.ok) {
+          addMessage(
+            "bot",
+            "Negotiation failed: the server returned " + negoRes.status + "."
+          );
+        } else if (transcript.length > 0) {
+          renderA2AThread(transcript, agentLabels);
+        }
+
+        if (!res.ok) {
+          addMessage("bot", "Error resuming chat: the server returned " + res.status + ".");
+          reenableContactPicker(pickerEl, btn);
+          return;
+        }
+
+        const data = await res.json();
+        handleChatResponse(data);
+        pendingProposal = null;
+      } catch (e) {
+        typing.remove();
+        addMessage("bot", "Network error: " + e.message);
+        reenableContactPicker(pickerEl, btn);
+      } finally {
+        sendBtn.disabled = false;
+        inputEl.focus();
+      }
+    }
+
+    async function cancelContactSelection(pickerEl, cancelBtn) {
+      disableContactPicker(pickerEl);
+      cancelBtn.textContent = "Cancelling\u2026";
+
+      const typing = addTyping();
+      sendBtn.disabled = true;
+      try {
+        const res = await authFetch("/api/chat/resume", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conversation_id: conversationId,
+            resume: { cancelled: true },
+          }),
+        });
+        typing.remove();
+        if (!res.ok) {
+          addMessage("bot", "Error: could not cancel.");
+          cancelBtn.disabled = false;
+          cancelBtn.textContent = "Cancel";
+          return;
+        }
+        const data = await res.json();
+        addMessage("bot", data.reply || "Booking cancelled.");
+        conversationId = newConversationId();
+      } catch (e) {
+        typing.remove();
+        addMessage("bot", "Network error: " + e.message);
+        cancelBtn.disabled = false;
+        cancelBtn.textContent = "Cancel";
+      } finally {
+        sendBtn.disabled = false;
+        inputEl.focus();
+      }
+    }
+
+    function handleChatResponse(data) {
+      if (data.status === "interrupt" && data.interrupt?.type === "contact_selection") {
+        showContactPicker(data.interrupt);
+        return;
+      }
+      if (data.status === "interrupt" && data.interrupt?.type === "slot_selection") {
+        showSlotPicker(data.interrupt);
+        return;
+      }
+      if (data.status === "interrupt" && data.interrupt?.type === "todo_confirmation") {
+        showTodoConfirm(data.interrupt);
+        return;
+      }
+      addMessage("bot", data.reply || "(no response)");
+      refreshStatus();
+      refreshGmailStatus();
+      refreshNotionStatus();
+      loadConversationList();
+    }
+
     async function refreshStatus() {
       try {
-        const res = await fetch("/api/calendar/status");
+        const res = await authFetch("/api/calendar/status");
         const data = await res.json();
-        if (data.user_id) userTag.textContent = "\u00B7 " + data.user_id;
         connectBtn.disabled = false;
         if (data.connected) {
           connectBtn.classList.add("connected");
-          connectLabel.textContent = "Calendar Connected";
+          setServiceBtnStatus(connectBtn, "Google Calendar connected");
           if (statusPoll) { clearInterval(statusPoll); statusPoll = null; }
         } else {
           connectBtn.classList.remove("connected");
-          connectLabel.textContent = "Connect Google Calendar";
+          setServiceBtnStatus(connectBtn, "Connect Google Calendar");
         }
         return data.connected;
       } catch (e) {
         connectBtn.disabled = false;
-        connectLabel.textContent = "Connect Google Calendar";
+        setServiceBtnStatus(connectBtn, "Connect Google Calendar");
         return false;
       }
     }
@@ -242,22 +1520,120 @@
     connectBtn.addEventListener("click", async () => {
       if (connectBtn.classList.contains("connected")) return;
       connectBtn.disabled = true;
-      connectLabel.textContent = "Opening\u2026";
+      setServiceBtnStatus(connectBtn, "Opening Google Calendar\u2026");
       try {
-        const res = await fetch("/api/calendar/connect", { method: "POST" });
+        const res = await authFetch("/api/calendar/connect", { method: "POST" });
         const data = await res.json();
+        if (!res.ok) {
+          setServiceBtnStatus(connectBtn, data.detail || "Connect failed \u2014 retry");
+          return;
+        }
         if (data.redirect_url) {
           window.open(data.redirect_url, "_blank", "noopener");
-          connectLabel.textContent = "Waiting for approval\u2026";
+          setServiceBtnStatus(connectBtn, "Waiting for approval\u2026");
           if (statusPoll) clearInterval(statusPoll);
           statusPoll = setInterval(refreshStatus, 2500);
         } else {
-          connectLabel.textContent = "Connect Google Calendar";
+          setServiceBtnStatus(connectBtn, "Connect failed \u2014 retry");
         }
       } catch (e) {
-        connectLabel.textContent = "Connect failed \u2014 retry";
+        setServiceBtnStatus(connectBtn, "Connect failed \u2014 retry");
       } finally {
         connectBtn.disabled = false;
+      }
+    });
+
+    async function refreshGmailStatus() {
+      try {
+        const res = await authFetch("/api/gmail/status");
+        const data = await res.json();
+        gmailConnectBtn.disabled = false;
+        if (data.connected) {
+          gmailConnectBtn.classList.add("connected");
+          setServiceBtnStatus(gmailConnectBtn, "Gmail connected");
+          if (gmailStatusPoll) { clearInterval(gmailStatusPoll); gmailStatusPoll = null; }
+        } else {
+          gmailConnectBtn.classList.remove("connected");
+          setServiceBtnStatus(gmailConnectBtn, "Connect Gmail");
+        }
+        return data.connected;
+      } catch (e) {
+        gmailConnectBtn.disabled = false;
+        setServiceBtnStatus(gmailConnectBtn, "Connect Gmail");
+        return false;
+      }
+    }
+
+    gmailConnectBtn.addEventListener("click", async () => {
+      if (gmailConnectBtn.classList.contains("connected")) return;
+      gmailConnectBtn.disabled = true;
+      setServiceBtnStatus(gmailConnectBtn, "Opening Gmail\u2026");
+      try {
+        const res = await authFetch("/api/gmail/connect", { method: "POST" });
+        const data = await res.json();
+        if (!res.ok) {
+          setServiceBtnStatus(gmailConnectBtn, data.detail || "Connect failed \u2014 retry");
+          return;
+        }
+        if (data.redirect_url) {
+          window.open(data.redirect_url, "_blank", "noopener");
+          setServiceBtnStatus(gmailConnectBtn, "Waiting for approval\u2026");
+          if (gmailStatusPoll) clearInterval(gmailStatusPoll);
+          gmailStatusPoll = setInterval(refreshGmailStatus, 2500);
+        } else {
+          setServiceBtnStatus(gmailConnectBtn, "Connect failed \u2014 retry");
+        }
+      } catch (e) {
+        setServiceBtnStatus(gmailConnectBtn, "Connect failed \u2014 retry");
+      } finally {
+        gmailConnectBtn.disabled = false;
+      }
+    });
+
+    async function refreshNotionStatus() {
+      try {
+        const res = await authFetch("/api/notion/status");
+        const data = await res.json();
+        notionConnectBtn.disabled = false;
+        if (data.connected) {
+          notionConnectBtn.classList.add("connected");
+          setServiceBtnStatus(notionConnectBtn, "Notion connected");
+          if (notionStatusPoll) { clearInterval(notionStatusPoll); notionStatusPoll = null; }
+        } else {
+          notionConnectBtn.classList.remove("connected");
+          setServiceBtnStatus(notionConnectBtn, "Connect Notion");
+        }
+        return data.connected;
+      } catch (e) {
+        notionConnectBtn.disabled = false;
+        setServiceBtnStatus(notionConnectBtn, "Connect Notion");
+        return false;
+      }
+    }
+
+    notionConnectBtn.addEventListener("click", async () => {
+      if (notionConnectBtn.classList.contains("connected")) return;
+      notionConnectBtn.disabled = true;
+      setServiceBtnStatus(notionConnectBtn, "Opening Notion\u2026");
+      try {
+        const res = await authFetch("/api/notion/connect", { method: "POST" });
+        const data = await res.json();
+        if (!res.ok) {
+          setServiceBtnStatus(notionConnectBtn, data.detail || "Connect failed \u2014 retry");
+          return;
+        }
+        if (data.redirect_url) {
+          window.open(data.redirect_url, "_blank", "noopener");
+          setServiceBtnStatus(notionConnectBtn, "Waiting for approval\u2026");
+          if (notionStatusPoll) clearInterval(notionStatusPoll);
+          notionStatusPoll = setInterval(refreshNotionStatus, 2500);
+        } else {
+          setServiceBtnStatus(notionConnectBtn, "Connect failed \u2014 retry");
+        }
+      } catch (e) {
+        setServiceBtnStatus(notionConnectBtn, "Connect failed \u2014 retry");
+      } finally {
+        notionConnectBtn.disabled = false;
       }
     });
 
@@ -270,18 +1646,25 @@
       sendBtn.disabled = true;
       const typing = addTyping();
       try {
-        const res = await fetch("/api/chat", {
+        pendingProposal = text;
+        const res = await authFetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: text, conversation_id: conversationId }),
+          body: JSON.stringify({
+            message: text,
+            conversation_id: ensureConversationId(),
+          }),
         });
         typing.remove();
         if (!res.ok) {
           addMessage("bot", "Error: the server returned " + res.status + ".");
         } else {
           const data = await res.json();
-          addMessage("bot", data.reply || "(no response)");
-          refreshStatus();
+          if (data.conversation_id) {
+            conversationId = data.conversation_id;
+            localStorage.setItem("activeConversationId", conversationId);
+          }
+          handleChatResponse(data);
         }
       } catch (e) {
         typing.remove();
@@ -299,9 +1682,9 @@
 
     newChatBtn.addEventListener("click", () => {
       conversationId = newConversationId();
-      messagesEl.innerHTML =
-        '<div class="empty" id="empty"><h1>How can I help?</h1>' +
-        "<p>Ask about your calendar, or connect Google Calendar to get started.</p></div>";
+      pendingProposal = null;
+      clearMessages();
+      setActiveConversationItem("");
       inputEl.focus();
     });
 
@@ -314,7 +1697,25 @@
     });
     sendBtn.addEventListener("click", send);
 
+    logoutBtn.addEventListener("click", async () => {
+      if (heartbeatTimer) {
+        clearInterval(heartbeatTimer);
+        heartbeatTimer = null;
+      }
+      try {
+        await authFetch("/api/auth/logout", { method: "POST" });
+      } catch (e) {
+        // still clear local session
+      }
+      clearSession();
+      window.location.href = "/login.html";
+    });
+
+    startHeartbeat();
     refreshStatus();
+    refreshGmailStatus();
+    refreshNotionStatus();
+    bootstrapConversations();
     inputEl.focus();
   </script>
 </body>
