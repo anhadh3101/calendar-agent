@@ -297,7 +297,6 @@ widgetsnbextension==4.0.9
 wrapt==1.16.0
 wsproto==1.2.0
 xgboost==2.0.3
-xpander-sdk==2.0.363
 xxhash==3.7.0
 yarl==1.24.2
 zipp==3.20.2

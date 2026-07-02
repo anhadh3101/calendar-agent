@@ -9,7 +9,6 @@ from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.prebuilt import create_react_agent
 from langgraph.types import Command
-from xpander_sdk import Agents
 
 ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
 load_dotenv(ENV_PATH)
@@ -36,11 +35,7 @@ from langchain_agents.tools.negotiation_status import (
 )
 from langchain_agents.tools.search_contacts import make_search_contacts_tool
 from langchain_agents.tools.select_meeting_slot import make_select_meeting_slot_tool
-from langchain_agents.tools.skills import (
-    discover_skills,
-    make_load_skill_tool,
-    merge_xpander_skills,
-)
+from langchain_agents.tools.skills import discover_skills, make_load_skill_tool
 from prompts.agent_u import create_system_prompt
 from prompts.negotiation import SENDER_TOOL_NOTE, create_negotiation_prompt
 
@@ -48,14 +43,12 @@ NegotiationRole = Literal["receiver", "sender"]
 
 REQUIRED_VARS = (
     "OPENAI_API_KEY",
-    "XPANDER_API_KEY",
-    "XPANDER_ORGANIZATION_ID",
-    "XPANDER_AGENT_ID",
     "COMPOSIO_API_KEY",
 )
 
 DEFAULT_USER_ID = "default_user"
 DEFAULT_THREAD_ID = "default"
+DEFAULT_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
 
 
 def validate_environment() -> None:
@@ -76,12 +69,8 @@ def get_composio_tools(user_id: str) -> list[Any]:
 
 
 def get_main_composio_tools(user_id: str) -> list[Any]:
-    return _composio_tools(user_id, ["googlecalendar", "gmail"])
+    return _composio_tools(user_id, ["googlecalendar", "gmail", "googledrive"])
 
-def get_xpander_tools() -> list[Any]:
-    xpander_agent = Agents().get(agent_id=os.getenv("XPANDER_AGENT_ID"))
-    xpander_agent.tools.is_async = False
-    return xpander_agent.tools.functions
 
 def get_agent_tools(user_id: str) -> list[Any]:
     return get_main_composio_tools(user_id) + [
@@ -92,7 +81,7 @@ def get_agent_tools(user_id: str) -> list[Any]:
         make_confirm_todos_tool(),
         make_load_skill_tool(),
         make_ask_notion_agent_tool(user_id),
-    ] + get_xpander_tools()
+    ]
 
 
 def get_negotiation_tools(
@@ -115,13 +104,12 @@ def get_negotiation_agent_bundle(
     """Build a headless agent for A2A slot negotiation (no contact search or interrupts)."""
     validate_environment()
 
-    xpander_agent = Agents().get(agent_id=os.getenv("XPANDER_AGENT_ID"))
     system_prompt = create_negotiation_prompt(
         extra_tool_note=SENDER_TOOL_NOTE if role == "sender" else None
     )
     tools = get_negotiation_tools(user_id, role)
 
-    llm = ChatOpenAI(model=xpander_agent.model_name, temperature=0)
+    llm = ChatOpenAI(model=DEFAULT_MODEL, temperature=0)
     agent = create_react_agent(
         llm,
         tools,
@@ -137,14 +125,10 @@ def get_agent_bundle(user_id: str = DEFAULT_USER_ID) -> tuple[Any, str]:
     """Build and cache the LangGraph ReAct agent and system prompt per user."""
     validate_environment()
 
-    xpander_agent = Agents().get(agent_id=os.getenv("XPANDER_AGENT_ID"))
-    skills = merge_xpander_skills(
-        discover_skills(), getattr(xpander_agent, "skills", None)
-    )
-    system_prompt = create_system_prompt(xpander_agent.instructions, skills)
+    system_prompt = create_system_prompt(discover_skills())
     tools = get_agent_tools(user_id)
 
-    llm = ChatOpenAI(model=xpander_agent.model_name, temperature=0)
+    llm = ChatOpenAI(model=DEFAULT_MODEL, temperature=0)
     # The checkpointer persists conversation state per thread_id. It lives on the
     # cached agent, so all turns for a user share the same in-process memory.
     agent = create_react_agent(
