@@ -1,18 +1,22 @@
 :root {
-  --bg: #faf9f5;
+  --bg: #f8f9fc;
   --panel: #ffffff;
-  --panel-2: #f0eee6;
-  --border: #e8e6dc;
-  --border-strong: #d1cfc5;
-  --text: #141413;
-  --text-soft: #3d3d3a;
-  --muted: #87867f;
-  --accent: #d97757;
-  --accent-2: #c6613f;
-  --error: #b4533a;
-  --error-bg: rgba(180, 83, 58, 0.1);
-  --ok: #788c5d;
-  --ok-bg: rgba(120, 140, 93, 0.14);
+  --panel-2: #f1f3f8;
+  --border: #e3e6ef;
+  --border-strong: #c8cdd8;
+  --text: #1a1d26;
+  --text-soft: #3c4257;
+  --muted: #6b7289;
+  --accent: #4a6cf7;
+  --accent-2: #3d5ce0;
+  --error: #e05c4e;
+  --error-bg: rgba(224, 92, 78, 0.1);
+  --ok: #2e9b5f;
+  --ok-bg: rgba(46, 155, 95, 0.12);
+  --gaia-blue: #4a6cf7;
+  --gaia-red: #e05c4e;
+  --gaia-amber: #e8a317;
+  --gaia-green: #2e9b5f;
 }
 
 * { box-sizing: border-box; }
@@ -37,7 +41,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 32px;
-  box-shadow: 0 8px 30px rgba(20, 20, 19, 0.06);
+  box-shadow: 0 8px 30px rgba(26, 29, 38, 0.06);
 }
 
 .brand {
@@ -50,10 +54,17 @@ body {
 }
 
 .brand .dot {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  background: var(--accent);
+  background: conic-gradient(
+    from 200deg,
+    var(--gaia-blue) 0%,
+    var(--gaia-red) 25%,
+    var(--gaia-amber) 50%,
+    var(--gaia-green) 75%,
+    var(--gaia-blue) 100%
+  );
 }
 
 h1 {
@@ -96,7 +107,7 @@ input {
 
 input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.15);
+  box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.15);
 }
 
 input::placeholder {
@@ -137,13 +148,13 @@ input::placeholder {
 .feedback.error {
   color: var(--error);
   background: var(--error-bg);
-  border: 1px solid rgba(180, 83, 58, 0.25);
+  border: 1px solid rgba(224, 92, 78, 0.25);
 }
 
 .feedback.success {
   color: var(--ok);
   background: var(--ok-bg);
-  border: 1px solid rgba(120, 140, 93, 0.35);
+  border: 1px solid rgba(46, 155, 95, 0.35);
 }
 
 .footer {
