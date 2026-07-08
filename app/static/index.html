@@ -947,6 +947,10 @@
       return body;
     }
 
+    function scrollChatToBottom() {
+      document.getElementById("main").scrollTop = document.getElementById("main").scrollHeight;
+    }
+
     function addMessage(role, text) {
       const empty = document.getElementById("empty");
       if (empty) empty.remove();
@@ -960,7 +964,7 @@
       msg.appendChild(createAvatar(role));
       msg.appendChild(body);
       messagesEl.appendChild(msg);
-      document.getElementById("main").scrollTop = document.getElementById("main").scrollHeight;
+      scrollChatToBottom();
       return content;
     }
 
@@ -977,8 +981,31 @@
       msg.appendChild(createAvatar("bot"));
       msg.appendChild(body);
       messagesEl.appendChild(msg);
-      document.getElementById("main").scrollTop = document.getElementById("main").scrollHeight;
+      scrollChatToBottom();
       return msg;
+    }
+
+    function parseSseBuffer(buffer) {
+      const normalized = buffer.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+      const frames = [];
+      const parts = normalized.split("\n\n");
+      const remainder = parts.pop() || "";
+      for (const part of parts) {
+        if (!part.trim()) continue;
+        let eventName = "message";
+        let dataStr = "";
+        for (const line of part.split("\n")) {
+          if (line.startsWith("event:")) eventName = line.slice(6).trim();
+          else if (line.startsWith("data:")) dataStr += line.slice(5).trim();
+        }
+        if (!dataStr) continue;
+        try {
+          frames.push({ event: eventName, data: JSON.parse(dataStr) });
+        } catch (_) {
+          // ignore malformed frames
+        }
+      }
+      return { frames, remainder };
     }
 
     function showContactPicker(interruptPayload) {
@@ -1497,17 +1524,33 @@
       }
     }
 
-    function handleChatResponse(data) {
+    function handleChatResponse(data, streamingContentEl) {
       if (data.status === "interrupt" && data.interrupt?.type === "contact_selection") {
+        if (streamingContentEl) streamingContentEl.closest(".msg")?.remove();
         showContactPicker(data.interrupt);
         return;
       }
       if (data.status === "interrupt" && data.interrupt?.type === "slot_selection") {
+        if (streamingContentEl) streamingContentEl.closest(".msg")?.remove();
         showSlotPicker(data.interrupt);
         return;
       }
       if (data.status === "interrupt" && data.interrupt?.type === "todo_confirmation") {
+        if (streamingContentEl) streamingContentEl.closest(".msg")?.remove();
         showTodoConfirm(data.interrupt);
+        return;
+      }
+      if (streamingContentEl) {
+        if (data.reply) {
+          streamingContentEl.innerHTML = renderContent(data.reply);
+        } else if (!streamingContentEl.textContent.trim()) {
+          streamingContentEl.innerHTML = renderContent("(no response)");
+        }
+        refreshStatus();
+        refreshGmailStatus();
+        refreshNotionStatus();
+        refreshDriveStatus();
+        loadConversationList();
         return;
       }
       addMessage("bot", data.reply || "(no response)");
@@ -1714,9 +1757,10 @@
       addMessage("user", text);
       sendBtn.disabled = true;
       const typing = addTyping();
+      let contentEl = null;
       try {
         pendingProposal = text;
-        const res = await authFetch("/api/chat", {
+        const res = await authFetch("/api/chat/stream", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -1726,17 +1770,71 @@
         });
         typing.remove();
         if (!res.ok) {
-          addMessage("bot", "Error: the server returned " + res.status + ".");
-        } else {
-          const data = await res.json();
-          if (data.conversation_id) {
-            conversationId = data.conversation_id;
-            localStorage.setItem("activeConversationId", conversationId);
+          let detail = String(res.status);
+          try {
+            const err = await res.json();
+            detail = err.detail || detail;
+          } catch (_) {
+            // keep status code
           }
-          handleChatResponse(data);
+          addMessage("bot", "Error: the server returned " + detail + ".");
+          return;
+        }
+
+        contentEl = addMessage("bot", "");
+        let fullText = "";
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let finished = false;
+
+        function consumeSseFrames(frames) {
+          for (const frame of frames) {
+            if (frame.event === "token" && frame.data.content) {
+              fullText += frame.data.content;
+              contentEl.innerHTML = renderContent(fullText);
+              scrollChatToBottom();
+            } else if (frame.event === "done") {
+              finished = true;
+              if (frame.data.conversation_id) {
+                conversationId = frame.data.conversation_id;
+                localStorage.setItem("activeConversationId", conversationId);
+              }
+              handleChatResponse(frame.data, contentEl);
+            } else if (frame.event === "error") {
+              finished = true;
+              contentEl.innerHTML = renderContent(
+                "Error: " + (frame.data.detail || "Unknown error")
+              );
+            }
+          }
+        }
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+
+          const parsed = parseSseBuffer(buffer);
+          buffer = parsed.remainder;
+          consumeSseFrames(parsed.frames);
+        }
+
+        if (buffer.trim()) {
+          const parsed = parseSseBuffer(buffer + "\n\n");
+          consumeSseFrames(parsed.frames);
+        }
+
+        if (!finished && contentEl) {
+          contentEl.innerHTML = renderContent(
+            fullText || "Error: stream ended before the response completed."
+          );
         }
       } catch (e) {
         typing.remove();
+        if (contentEl) {
+          contentEl.closest(".msg")?.remove();
+        }
         addMessage("bot", "Network error: " + e.message);
       } finally {
         sendBtn.disabled = false;

@@ -31,7 +31,7 @@ from a2a.server.routes import create_agent_card_routes, create_jsonrpc_routes
 from a2a.client import ClientConfig, create_client
 
 from app.instance_owner import resolve_instance_owner_id
-from langchain_agents.agent_u import (
+from langchain_agents.gaia import (
     DEFAULT_USER_ID,
     extract_last_ai_message,
     get_negotiation_agent_bundle,
