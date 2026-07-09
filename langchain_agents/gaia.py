@@ -21,10 +21,7 @@ os.environ.setdefault(
 from composio import Composio
 from composio_langchain import LangchainProvider
 
-from langchain_agents.tools.ask_notion_agent import (
-    make_ask_notion_agent_tool,
-    parent_thread_id,
-)
+from langchain_agents.tools.ask_notion_agent import make_ask_notion_agent_tool
 from langchain_agents.tools.check_calendar import make_check_calendar_connected_tool
 from langchain_agents.tools.check_gmail import make_check_gmail_connected_tool
 from langchain_agents.tools.confirm_todos import make_confirm_todos_tool
@@ -42,7 +39,7 @@ from prompts.negotiation import SENDER_TOOL_NOTE, create_negotiation_prompt
 NegotiationRole = Literal["receiver", "sender"]
 
 REQUIRED_VARS = (
-    "OPENAI_API_KEY",
+    "OPENROUTER_API_KEY",
     "COMPOSIO_API_KEY",
 )
 
@@ -109,7 +106,12 @@ def get_negotiation_agent_bundle(
     )
     tools = get_negotiation_tools(user_id, role)
 
-    llm = ChatOpenAI(model=DEFAULT_MODEL, temperature=0)
+    llm = ChatOpenAI(
+        model="openai/gpt-4o-mini", 
+        temperature=0,
+        api_key=os.getenv("OPENROUTER_API_KEY"),
+        base_url="https://openrouter.ai/api/v1",
+    )
     agent = create_react_agent(
         llm,
         tools,
@@ -128,7 +130,13 @@ def get_agent_bundle(user_id: str = DEFAULT_USER_ID) -> tuple[Any, str]:
     system_prompt = create_system_prompt(discover_skills())
     tools = get_agent_tools(user_id)
 
-    llm = ChatOpenAI(model=DEFAULT_MODEL, temperature=0)
+    llm = ChatOpenAI(
+        model="openai/gpt-4o-mini", 
+        temperature=0, 
+        streaming=True,
+        api_key=os.getenv("OPENROUTER_API_KEY"),
+        base_url="https://openrouter.ai/api/v1",
+    )
     # The checkpointer persists conversation state per thread_id. It lives on the
     # cached agent, so all turns for a user share the same in-process memory.
     agent = create_react_agent(
@@ -188,15 +196,10 @@ def chat(
 ) -> dict[str, Any]:
     """Run one turn, continuing the conversation identified by ``thread_id``."""
     agent, _ = get_agent_bundle(user_id)
-
-    token = parent_thread_id.set(thread_id)
-    try:
-        response = agent.invoke(
-            {"messages": [("user", user_message)]},
-            config=_thread_config(thread_id),
-        )
-    finally:
-        parent_thread_id.reset(token)
+    response = agent.invoke(
+        {"messages": [("user", user_message)]},
+        config=_thread_config(thread_id),
+    )
     return build_chat_result(agent, response, thread_id, user_id)
 
 
@@ -258,15 +261,10 @@ def resume_chat(
 ) -> dict[str, Any]:
     """Resume a paused graph after human input (e.g. contact selection)."""
     agent, _ = get_agent_bundle(user_id)
-
-    token = parent_thread_id.set(thread_id)
-    try:
-        response = agent.invoke(
-            Command(resume=resume_value),
-            config=_thread_config(thread_id),
-        )
-    finally:
-        parent_thread_id.reset(token)
+    response = agent.invoke(
+        Command(resume=resume_value),
+        config=_thread_config(thread_id),
+    )
     return build_chat_result(agent, response, thread_id, user_id)
 
 
@@ -285,15 +283,11 @@ def stream_chat(
 ) -> Iterator[dict[str, Any]]:
     """Yield LangGraph stream chunks (useful for SSE later)."""
     agent, _ = get_agent_bundle(user_id)
-
-    token = parent_thread_id.set(thread_id)
-    try:
-        yield from agent.stream(
-            {"messages": [("user", user_message)]},
-            config=_thread_config(thread_id),
-        )
-    finally:
-        parent_thread_id.reset(token)
+    yield from agent.stream(
+        {"messages": [("user", user_message)]},
+        config=_thread_config(thread_id),
+        stream_mode=["messages", "updates"],
+    )
 
 
 def main() -> None:
