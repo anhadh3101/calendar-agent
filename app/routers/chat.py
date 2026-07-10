@@ -9,12 +9,12 @@ from sse_starlette.sse import EventSourceResponse
 
 from app.conversation_store import append_messages, exists_for_user, title_from_message
 from app.deps import get_current_user
-from langchain_agents.gaia import (
+from langchain_agents.orchestrator_graph import (
     build_chat_result,
-    chat,
-    get_agent_bundle,
-    resume_chat,
-    stream_chat,
+    get_orchestrator_bundle,
+    orchestrator_chat,
+    orchestrator_resume,
+    orchestrator_stream
 )
 
 router = APIRouter(prefix="/api", tags=["chat"])
@@ -60,18 +60,41 @@ def _message_chunk_text(content: Any) -> str:
     return ""
 
 
+def _normalize_stream_chunk(chunk: Any) -> tuple[str | None, Any]:
+    """Unwrap LangGraph stream chunks, including subgraph namespaced tuples."""
+    # subgraphs=True + stream_mode list: (namespace, mode, payload)
+    if isinstance(chunk, tuple) and len(chunk) == 3:
+        _, mode, payload = chunk
+        if isinstance(mode, str):
+            return mode, payload
+
+    if not isinstance(chunk, tuple) or len(chunk) != 2:
+        return None, chunk
+
+    first, second = chunk
+
+    # Subgraph format: (namespace, inner)
+    if isinstance(first, tuple) and isinstance(second, tuple):
+        inner = second
+        if len(inner) == 2 and isinstance(inner[0], str):
+            return inner[0], inner[1]
+        return None, inner
+
+    # Flat format: ("messages", payload)
+    if isinstance(first, str):
+        return first, second
+
+    # Legacy: (message_chunk, metadata) with no mode prefix
+    if hasattr(first, "content"):
+        return None, chunk
+
+    return None, chunk
+
+
 def _iter_stream_events(chunks: Iterator[Any]) -> Iterator[dict[str, str]]:
     """Translate LangGraph stream chunks into SSE event dicts."""
     for chunk in chunks:
-        mode: str | None = None
-        payload = chunk
-
-        if isinstance(chunk, tuple) and len(chunk) == 2:
-            first, second = chunk
-            if isinstance(first, str):
-                mode, payload = first, second
-            elif hasattr(first, "content"):
-                payload = chunk
+        mode, payload = _normalize_stream_chunk(chunk)
 
         if mode == "messages" or (
             mode is None
@@ -132,7 +155,7 @@ def chat_endpoint(
         [{"role": "user", "content": req.message}],
         title=title_from_message(req.message) if is_new else None,
     )
-    result = chat(req.message, user_id=user_id, thread_id=thread_id)
+    result = orchestrator_chat(req.message, user_id=user_id, thread_id=thread_id)
     _persist_assistant_reply(user_id, thread_id, result)
     result["conversation_id"] = thread_id
     return ChatResponse(**result)
@@ -157,10 +180,10 @@ def chat_stream_endpoint(
     def event_generator() -> Iterator[dict[str, str]]:
         try:
             yield from _iter_stream_events(
-                stream_chat(req.message, user_id=user_id, thread_id=thread_id)
+                orchestrator_stream(req.message, user_id=user_id, thread_id=thread_id)
             )
 
-            agent, _ = get_agent_bundle(user_id)
+            agent = get_orchestrator_bundle(user_id)
             state = agent.get_state(_thread_config(thread_id))
             messages = (state.values or {}).get("messages", [])
             result = build_chat_result(
@@ -187,7 +210,7 @@ def chat_resume_endpoint(
     """Resume the agent after a HITL interrupt (e.g. contact selection)."""
     user_id = user.id
     thread_id = _resolve_conversation_id(req.conversation_id)
-    result = resume_chat(req.resume, user_id=user_id, thread_id=thread_id)
+    result = orchestrator_resume(req.resume, user_id=user_id, thread_id=thread_id)
     _persist_assistant_reply(user_id, thread_id, result)
     result["conversation_id"] = thread_id
     return ChatResponse(**result)

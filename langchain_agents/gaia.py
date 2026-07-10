@@ -33,7 +33,7 @@ from langchain_agents.tools.negotiation_status import (
 from langchain_agents.tools.search_contacts import make_search_contacts_tool
 from langchain_agents.tools.select_meeting_slot import make_select_meeting_slot_tool
 from langchain_agents.tools.skills import discover_skills, make_load_skill_tool
-from prompts.agent_u import create_system_prompt
+from prompts.gaia import create_system_prompt
 from prompts.negotiation import SENDER_TOOL_NOTE, create_negotiation_prompt
 
 NegotiationRole = Literal["receiver", "sender"]
@@ -147,6 +147,29 @@ def get_agent_bundle(user_id: str = DEFAULT_USER_ID) -> tuple[Any, str]:
     )
 
     return agent, system_prompt
+
+def build_gaia_graph(user_id: str):
+    # First validate if environment variables are present.
+    validate_environment()
+    
+    # Get the system prompt and the tools
+    system_prompt = create_system_prompt(discover_skills())
+    tools = get_agent_tools(user_id)
+    
+    llm = ChatOpenAI(
+        model="openai/gpt-4o-mini",
+        temperature=0,
+        streaming=True,
+        api_key=os.getenv("OPENROUTER_API_KEY"),
+        base_url="https://openrouter.ai/api/v1",
+    )
+    
+    return create_react_agent(
+        llm,
+        tools,
+        prompt=system_prompt,
+    )
+    
 
 
 def _thread_config(thread_id: str) -> dict[str, Any]:
