@@ -31,7 +31,7 @@ from a2a.server.routes import create_agent_card_routes, create_jsonrpc_routes
 from a2a.client import ClientConfig, create_client
 
 from app.instance_owner import resolve_instance_owner_id
-from langchain_agents.agent_u import (
+from langchain_agents.gaia import (
     DEFAULT_USER_ID,
     extract_last_ai_message,
     get_negotiation_agent_bundle,
@@ -42,12 +42,8 @@ MAX_NEGOTIATION_ROUNDS = 5
 
 RPC_PATH = "/api/v1/jsonrpc/"
 
-# Agent work runs in this dedicated pool, never on the server event loop.
-# xpander_sdk's Agents().get() bridges async->sync by driving the *running* loop
-# (nest_asyncio + run_until_complete), which shuts down that loop's default
-# executor. Running the build+invoke in a worker thread (no live loop) keeps
-# xpander off the request loop, and dispatching through an explicit executor
-# avoids the default-executor "Executor shutdown has been called" check.
+# Agent work runs in this dedicated pool so blocking LLM/Composio calls never
+# stall the server's async event loop.
 _AGENT_POOL = concurrent.futures.ThreadPoolExecutor(
     max_workers=4, thread_name_prefix="agent"
 )
@@ -89,8 +85,7 @@ class NegotiatorExecutor(AgentExecutor):
     """Receiver side: a peer's message arrives, our agent crafts the reply."""
 
     def _run_turn(self, incoming: str, thread_id: str) -> str:
-        # Runs in a worker thread with no live event loop, so xpander_sdk's
-        # sync bridge never touches (and corrupts) the server's loop.
+        # Runs in a worker thread so invoke does not block the event loop.
         user_id = resolve_instance_owner_id()
         agent, _ = get_negotiation_agent_bundle(user_id)
         result = agent.invoke(

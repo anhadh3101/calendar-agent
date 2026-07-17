@@ -1,5 +1,3 @@
-from typing import Any
-
 from langchain_agents.tools.skills import build_skills_catalog_prompt
 
 SYSTEM_PROMPT = (
@@ -58,22 +56,8 @@ SYSTEM_PROMPT = (
     "which contact they mean."
 )
 
-def create_system_prompt(
-    instructions: Any, skills: list[dict] | None = None
-) -> str:
-    parts: list[str] = []
-
-    if getattr(instructions, "general", None):
-        parts.append(f"System: {instructions.general}")
-
-    if getattr(instructions, "goal_str", None):
-        parts.append(f"Goals:\n{instructions.goal_str}")
-
-    if getattr(instructions, "instructions", None):
-        instr_list = "\n".join(f"- {instr}" for instr in instructions.instructions)
-        parts.append(f"Instructions:\n{instr_list}")
-
-    parts.append(SYSTEM_PROMPT)
+def create_system_prompt(skills: list[dict] | None = None) -> str:
+    parts = [SYSTEM_PROMPT]
 
     catalog = build_skills_catalog_prompt(skills or [])
     if catalog:

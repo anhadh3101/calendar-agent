@@ -11,6 +11,7 @@ from app.routers import (
     auth,
     calendar,
     chat,
+    drive,
     gmail,
     conversations,
     health,
@@ -34,6 +35,7 @@ app.include_router(conversations.router)
 app.include_router(calendar.router)
 app.include_router(gmail.router)
 app.include_router(notion.router)
+app.include_router(drive.router)
 app.include_router(a2a_negotiate.router)
 app.include_router(heartbeat.router)
 

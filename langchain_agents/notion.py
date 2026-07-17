@@ -22,7 +22,7 @@ from langgraph.prebuilt import create_react_agent
 from langchain_agents.tools.check_notion import make_check_notion_connected_tool
 from prompts.notion_agent import create_system_prompt
 
-REQUIRED_VARS = ("OPENAI_API_KEY", "COMPOSIO_API_KEY")
+REQUIRED_VARS = ("OPENROUTER_API_KEY", "COMPOSIO_API_KEY")
 DEFAULT_MODEL = os.getenv("NOTION_AGENT_MODEL", "gpt-4o")
 DEFAULT_USER_ID = "default_user"
 DEFAULT_THREAD_ID = "default"
@@ -57,7 +57,12 @@ def get_notion_agent_bundle(user_id: str = DEFAULT_USER_ID) -> tuple[Any, str]:
     system_prompt = create_system_prompt()
     tools = get_notion_tools(user_id)
 
-    llm = ChatOpenAI(model=DEFAULT_MODEL, temperature=0)
+    llm = ChatOpenAI(
+        model="openai/gpt-4o-mini", 
+        temperature=0,
+        api_key=os.getenv("OPENROUTER_API_KEY"),
+        base_url="https://openrouter.ai/api/v1",
+    )
     agent = create_react_agent(
         llm,
         tools,

@@ -6,19 +6,23 @@
   <title>GAIA</title>
   <style>
     :root {
-      --bg: #faf9f5;
+      --bg: #f8f9fc;
       --panel: #ffffff;
-      --panel-2: #f0eee6;
-      --border: #e8e6dc;
-      --border-strong: #d1cfc5;
-      --text: #141413;
-      --text-soft: #3d3d3a;
-      --muted: #87867f;
-      --accent: #d97757;
-      --accent-2: #c6613f;
-      --user-bubble: #e8e6dc;
-      --ok: #788c5d;
-      --ok-bg: rgba(120, 140, 93, 0.14);
+      --panel-2: #f1f3f8;
+      --border: #e3e6ef;
+      --border-strong: #c8cdd8;
+      --text: #1a1d26;
+      --text-soft: #3c4257;
+      --muted: #6b7289;
+      --accent: #4a6cf7;
+      --accent-2: #3d5ce0;
+      --user-bubble: #e3e6ef;
+      --ok: #2e9b5f;
+      --ok-bg: rgba(46, 155, 95, 0.12);
+      --gaia-blue: #4a6cf7;
+      --gaia-red: #e05c4e;
+      --gaia-amber: #e8a317;
+      --gaia-green: #2e9b5f;
     }
     * { box-sizing: border-box; }
     html, body { height: 100%; margin: 0; }
@@ -62,8 +66,8 @@
       justify-content: flex-start;
       gap: 10px;
       width: 100%;
-      border: 1px solid rgba(217, 119, 87, 0.28);
-      background: linear-gradient(180deg, rgba(217, 119, 87, 0.14) 0%, rgba(217, 119, 87, 0.08) 100%);
+      border: 1px solid rgba(74, 108, 247, 0.28);
+      background: linear-gradient(180deg, rgba(74, 108, 247, 0.14) 0%, rgba(74, 108, 247, 0.08) 100%);
       color: var(--text);
       padding: 11px 14px;
       border-radius: 12px;
@@ -72,12 +76,12 @@
       font-weight: 500;
       cursor: pointer;
       transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
-      box-shadow: 0 1px 2px rgba(20, 20, 19, 0.05);
+      box-shadow: 0 1px 2px rgba(26, 29, 38, 0.05);
     }
     #newChatBtn:hover {
-      border-color: rgba(217, 119, 87, 0.45);
-      background: linear-gradient(180deg, rgba(217, 119, 87, 0.2) 0%, rgba(217, 119, 87, 0.12) 100%);
-      box-shadow: 0 2px 8px rgba(217, 119, 87, 0.12);
+      border-color: rgba(74, 108, 247, 0.45);
+      background: linear-gradient(180deg, rgba(74, 108, 247, 0.2) 0%, rgba(74, 108, 247, 0.12) 100%);
+      box-shadow: 0 2px 8px rgba(74, 108, 247, 0.12);
     }
     #newChatBtn:active {
       transform: scale(0.98);
@@ -91,7 +95,7 @@
       color: #fff;
       display: grid;
       place-items: center;
-      box-shadow: 0 1px 3px rgba(198, 97, 63, 0.35);
+      box-shadow: 0 1px 3px rgba(61, 92, 224, 0.35);
     }
     #newChatBtn .new-chat-icon svg {
       width: 15px;
@@ -151,15 +155,27 @@
       gap: 12px;
       padding: 14px 20px;
       border-bottom: 1px solid var(--border);
-      background: rgba(250, 249, 245, 0.92);
+      background: rgba(248, 249, 252, 0.92);
       backdrop-filter: blur(8px);
       border-bottom: none;
     }
     .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; color: var(--text); }
-    .brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+    .brand .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: conic-gradient(
+        from 200deg,
+        var(--gaia-blue) 0%,
+        var(--gaia-red) 25%,
+        var(--gaia-amber) 50%,
+        var(--gaia-green) 75%,
+        var(--gaia-blue) 100%
+      );
+    }
     .brand small { color: var(--muted); font-weight: 400; }
     .actions { display: flex; align-items: center; gap: 8px; }
-    #connectBtn, #gmailConnectBtn, #notionConnectBtn {
+    #connectBtn, #gmailConnectBtn, #notionConnectBtn, #driveConnectBtn {
       display: inline-flex; align-items: center; gap: 8px;
       border: 1px solid var(--border-strong);
       background: var(--panel);
@@ -170,16 +186,16 @@
       cursor: pointer;
       transition: all 0.15s ease;
     }
-    #connectBtn:hover, #gmailConnectBtn:hover, #notionConnectBtn:hover {
+    #connectBtn:hover, #gmailConnectBtn:hover, #notionConnectBtn:hover, #driveConnectBtn:hover {
       border-color: var(--accent);
       background: var(--panel-2);
     }
-    #connectBtn:disabled, #gmailConnectBtn:disabled, #notionConnectBtn:disabled {
+    #connectBtn:disabled, #gmailConnectBtn:disabled, #notionConnectBtn:disabled, #driveConnectBtn:disabled {
       opacity: 0.7; cursor: default;
     }
-    #connectBtn.connected, #gmailConnectBtn.connected, #notionConnectBtn.connected {
+    #connectBtn.connected, #gmailConnectBtn.connected, #notionConnectBtn.connected, #driveConnectBtn.connected {
       background: var(--ok-bg);
-      border-color: rgba(120, 140, 93, 0.45);
+      border-color: rgba(46, 155, 95, 0.45);
     }
     .service-ico { width: 22px; height: 22px; display: block; object-fit: contain; }
     #logoutBtn {
@@ -215,19 +231,19 @@
     .msg .avatar {
       flex: 0 0 36px; width: 36px; height: 36px; border-radius: 10px;
       display: grid; place-items: center;
-      box-shadow: 0 1px 3px rgba(20, 20, 19, 0.07);
+      box-shadow: 0 1px 3px rgba(26, 29, 38, 0.07);
     }
     .msg .avatar svg { width: 18px; height: 18px; }
     .msg.user .avatar {
-      background: linear-gradient(145deg, #f2f0e8 0%, #e4e2d8 100%);
+      background: linear-gradient(145deg, #e8ecf4 0%, #d8deea 100%);
       color: var(--text-soft);
-      border: 1px solid rgba(209, 207, 197, 0.55);
+      border: 1px solid rgba(200, 205, 216, 0.55);
       font-size: 12px; font-weight: 700; letter-spacing: 0.02em;
     }
     .msg.bot .avatar {
-      background: linear-gradient(145deg, #e0886a 0%, #d97757 55%, #c6613f 100%);
+      background: linear-gradient(145deg, #6b86f9 0%, #4a6cf7 55%, #3d5ce0 100%);
       color: #fff;
-      box-shadow: 0 2px 8px rgba(217, 119, 87, 0.28);
+      box-shadow: 0 2px 8px rgba(74, 108, 247, 0.28);
     }
     .msg .body { flex: 1; min-width: 0; }
     .msg .msg-sender {
@@ -240,7 +256,7 @@
     .msg.bot .msg-sender .sender-dot {
       width: 6px; height: 6px; border-radius: 50%;
       background: var(--accent);
-      box-shadow: 0 0 0 2px rgba(217, 119, 87, 0.18);
+      box-shadow: 0 0 0 2px rgba(74, 108, 247, 0.18);
     }
     .msg .msg-content { white-space: pre-wrap; word-wrap: break-word; color: var(--text-soft); }
     .msg .body a { color: var(--accent-2); }
@@ -255,7 +271,7 @@
     .typing span:nth-child(3) { animation-delay: 0.4s; }
     @keyframes blink { 0%, 80%, 100% { opacity: 0.2; } 40% { opacity: 1; } }
 
-    footer { border-top: 1px solid var(--border); background: rgba(250, 249, 245, 0.92); padding: 16px 0; border-top: none;}
+    footer { border-top: 1px solid var(--border); background: rgba(248, 249, 252, 0.92); padding: 16px 0; border-top: none;}
     .composer { max-width: 760px; margin: 0 auto; padding: 0 20px; display: flex; gap: 10px; align-items: flex-end; }
     textarea {
       flex: 1; resize: none; max-height: 160px;
@@ -263,9 +279,9 @@
       border: 1px solid var(--border-strong); border-radius: 12px;
       padding: 12px 14px; font: inherit; line-height: 1.4;
       outline: none;
-      box-shadow: 0 1px 2px rgba(20, 20, 19, 0.04);
+      box-shadow: 0 1px 2px rgba(26, 29, 38, 0.04);
     }
-    textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.15); }
+    textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.15); }
     #sendBtn {
       width: 44px; height: 44px; flex: 0 0 44px;
       border: none; border-radius: 12px; cursor: pointer;
@@ -317,7 +333,7 @@
       margin-top: 2px;
     }
     .contact-picker .contact-meta.unavailable {
-      color: #b45309;
+      color: #c47a0a;
     }
     .contact-picker .contact-select,
     .slot-picker .slot-select {
@@ -526,6 +542,9 @@
       <button id="notionConnectBtn" type="button" disabled title="Checking&hellip;" aria-label="Connect Notion">
         <img class="service-ico" src="/assets/notion.png" alt="" aria-hidden="true" />
       </button>
+      <button id="driveConnectBtn" type="button" disabled title="Checking&hellip;" aria-label="Connect Google Drive">
+        <img class="service-ico" src="/assets/google-drive.png" alt="" aria-hidden="true" />
+      </button>
     </div>
   </header>
 
@@ -564,6 +583,7 @@
     const connectBtn = document.getElementById("connectBtn");
     const gmailConnectBtn = document.getElementById("gmailConnectBtn");
     const notionConnectBtn = document.getElementById("notionConnectBtn");
+    const driveConnectBtn = document.getElementById("driveConnectBtn");
 
     function setServiceBtnStatus(btn, label) {
       btn.title = label;
@@ -598,6 +618,7 @@
     let statusPoll = null;
     let gmailStatusPoll = null;
     let notionStatusPoll = null;
+    let driveStatusPoll = null;
     let heartbeatTimer = null;
     const HEARTBEAT_INTERVAL_MS = 60_000;
 
@@ -926,6 +947,10 @@
       return body;
     }
 
+    function scrollChatToBottom() {
+      document.getElementById("main").scrollTop = document.getElementById("main").scrollHeight;
+    }
+
     function addMessage(role, text) {
       const empty = document.getElementById("empty");
       if (empty) empty.remove();
@@ -939,7 +964,7 @@
       msg.appendChild(createAvatar(role));
       msg.appendChild(body);
       messagesEl.appendChild(msg);
-      document.getElementById("main").scrollTop = document.getElementById("main").scrollHeight;
+      scrollChatToBottom();
       return content;
     }
 
@@ -956,8 +981,31 @@
       msg.appendChild(createAvatar("bot"));
       msg.appendChild(body);
       messagesEl.appendChild(msg);
-      document.getElementById("main").scrollTop = document.getElementById("main").scrollHeight;
+      scrollChatToBottom();
       return msg;
+    }
+
+    function parseSseBuffer(buffer) {
+      const normalized = buffer.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+      const frames = [];
+      const parts = normalized.split("\n\n");
+      const remainder = parts.pop() || "";
+      for (const part of parts) {
+        if (!part.trim()) continue;
+        let eventName = "message";
+        let dataStr = "";
+        for (const line of part.split("\n")) {
+          if (line.startsWith("event:")) eventName = line.slice(6).trim();
+          else if (line.startsWith("data:")) dataStr += line.slice(5).trim();
+        }
+        if (!dataStr) continue;
+        try {
+          frames.push({ event: eventName, data: JSON.parse(dataStr) });
+        } catch (_) {
+          // ignore malformed frames
+        }
+      }
+      return { frames, remainder };
     }
 
     function showContactPicker(interruptPayload) {
@@ -1476,23 +1524,40 @@
       }
     }
 
-    function handleChatResponse(data) {
+    function handleChatResponse(data, streamingContentEl) {
       if (data.status === "interrupt" && data.interrupt?.type === "contact_selection") {
+        if (streamingContentEl) streamingContentEl.closest(".msg")?.remove();
         showContactPicker(data.interrupt);
         return;
       }
       if (data.status === "interrupt" && data.interrupt?.type === "slot_selection") {
+        if (streamingContentEl) streamingContentEl.closest(".msg")?.remove();
         showSlotPicker(data.interrupt);
         return;
       }
       if (data.status === "interrupt" && data.interrupt?.type === "todo_confirmation") {
+        if (streamingContentEl) streamingContentEl.closest(".msg")?.remove();
         showTodoConfirm(data.interrupt);
+        return;
+      }
+      if (streamingContentEl) {
+        if (data.reply) {
+          streamingContentEl.innerHTML = renderContent(data.reply);
+        } else if (!streamingContentEl.textContent.trim()) {
+          streamingContentEl.innerHTML = renderContent("(no response)");
+        }
+        refreshStatus();
+        refreshGmailStatus();
+        refreshNotionStatus();
+        refreshDriveStatus();
+        loadConversationList();
         return;
       }
       addMessage("bot", data.reply || "(no response)");
       refreshStatus();
       refreshGmailStatus();
       refreshNotionStatus();
+      refreshDriveStatus();
       loadConversationList();
     }
 
@@ -1637,6 +1702,53 @@
       }
     });
 
+    async function refreshDriveStatus() {
+      try {
+        const res = await authFetch("/api/drive/status");
+        const data = await res.json();
+        driveConnectBtn.disabled = false;
+        if (data.connected) {
+          driveConnectBtn.classList.add("connected");
+          setServiceBtnStatus(driveConnectBtn, "Google Drive connected");
+          if (driveStatusPoll) { clearInterval(driveStatusPoll); driveStatusPoll = null; }
+        } else {
+          driveConnectBtn.classList.remove("connected");
+          setServiceBtnStatus(driveConnectBtn, "Connect Google Drive");
+        }
+        return data.connected;
+      } catch (e) {
+        driveConnectBtn.disabled = false;
+        setServiceBtnStatus(driveConnectBtn, "Connect Google Drive");
+        return false;
+      }
+    }
+
+    driveConnectBtn.addEventListener("click", async () => {
+      if (driveConnectBtn.classList.contains("connected")) return;
+      driveConnectBtn.disabled = true;
+      setServiceBtnStatus(driveConnectBtn, "Opening Google Drive\u2026");
+      try {
+        const res = await authFetch("/api/drive/connect", { method: "POST" });
+        const data = await res.json();
+        if (!res.ok) {
+          setServiceBtnStatus(driveConnectBtn, data.detail || "Connect failed \u2014 retry");
+          return;
+        }
+        if (data.redirect_url) {
+          window.open(data.redirect_url, "_blank", "noopener");
+          setServiceBtnStatus(driveConnectBtn, "Waiting for approval\u2026");
+          if (driveStatusPoll) clearInterval(driveStatusPoll);
+          driveStatusPoll = setInterval(refreshDriveStatus, 2500);
+        } else {
+          setServiceBtnStatus(driveConnectBtn, "Connect failed \u2014 retry");
+        }
+      } catch (e) {
+        setServiceBtnStatus(driveConnectBtn, "Connect failed \u2014 retry");
+      } finally {
+        driveConnectBtn.disabled = false;
+      }
+    });
+
     async function send() {
       const text = inputEl.value.trim();
       if (!text) return;
@@ -1645,9 +1757,10 @@
       addMessage("user", text);
       sendBtn.disabled = true;
       const typing = addTyping();
+      let contentEl = null;
       try {
         pendingProposal = text;
-        const res = await authFetch("/api/chat", {
+        const res = await authFetch("/api/chat/stream", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -1657,17 +1770,71 @@
         });
         typing.remove();
         if (!res.ok) {
-          addMessage("bot", "Error: the server returned " + res.status + ".");
-        } else {
-          const data = await res.json();
-          if (data.conversation_id) {
-            conversationId = data.conversation_id;
-            localStorage.setItem("activeConversationId", conversationId);
+          let detail = String(res.status);
+          try {
+            const err = await res.json();
+            detail = err.detail || detail;
+          } catch (_) {
+            // keep status code
           }
-          handleChatResponse(data);
+          addMessage("bot", "Error: the server returned " + detail + ".");
+          return;
+        }
+
+        contentEl = addMessage("bot", "");
+        let fullText = "";
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let finished = false;
+
+        function consumeSseFrames(frames) {
+          for (const frame of frames) {
+            if (frame.event === "token" && frame.data.content) {
+              fullText += frame.data.content;
+              contentEl.innerHTML = renderContent(fullText);
+              scrollChatToBottom();
+            } else if (frame.event === "done") {
+              finished = true;
+              if (frame.data.conversation_id) {
+                conversationId = frame.data.conversation_id;
+                localStorage.setItem("activeConversationId", conversationId);
+              }
+              handleChatResponse(frame.data, contentEl);
+            } else if (frame.event === "error") {
+              finished = true;
+              contentEl.innerHTML = renderContent(
+                "Error: " + (frame.data.detail || "Unknown error")
+              );
+            }
+          }
+        }
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+
+          const parsed = parseSseBuffer(buffer);
+          buffer = parsed.remainder;
+          consumeSseFrames(parsed.frames);
+        }
+
+        if (buffer.trim()) {
+          const parsed = parseSseBuffer(buffer + "\n\n");
+          consumeSseFrames(parsed.frames);
+        }
+
+        if (!finished && contentEl) {
+          contentEl.innerHTML = renderContent(
+            fullText || "Error: stream ended before the response completed."
+          );
         }
       } catch (e) {
         typing.remove();
+        if (contentEl) {
+          contentEl.closest(".msg")?.remove();
+        }
         addMessage("bot", "Network error: " + e.message);
       } finally {
         sendBtn.disabled = false;
@@ -1715,6 +1882,7 @@
     refreshStatus();
     refreshGmailStatus();
     refreshNotionStatus();
+    refreshDriveStatus();
     bootstrapConversations();
     inputEl.focus();
   </script>

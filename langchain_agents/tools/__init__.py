@@ -9,7 +9,6 @@ from langchain_agents.tools.skills import (
     discover_skills,
     load_skill_body,
     make_load_skill_tool,
-    merge_xpander_skills,
 )
 
 __all__ = [
@@ -21,5 +20,4 @@ __all__ = [
     "make_load_skill_tool",
     "make_search_contacts_tool",
     "make_select_meeting_slot_tool",
-    "merge_xpander_skills",
 ]

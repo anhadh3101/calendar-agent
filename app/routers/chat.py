@@ -1,12 +1,21 @@
+import json
 import uuid
+from collections.abc import Iterator
 from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
+from sse_starlette.sse import EventSourceResponse
 
 from app.conversation_store import append_messages, exists_for_user, title_from_message
 from app.deps import get_current_user
-from langchain_agents.agent_u import chat, resume_chat
+from langchain_agents.orchestrator_graph import (
+    build_chat_result,
+    get_orchestrator_bundle,
+    orchestrator_chat,
+    orchestrator_resume,
+    orchestrator_stream
+)
 
 router = APIRouter(prefix="/api", tags=["chat"])
 
@@ -31,6 +40,84 @@ class ChatResponse(BaseModel):
 
 def _resolve_conversation_id(conversation_id: str | None) -> str:
     return conversation_id or str(uuid.uuid4())
+
+
+def _thread_config(thread_id: str) -> dict[str, Any]:
+    return {"configurable": {"thread_id": thread_id}}
+
+
+def _message_chunk_text(content: Any) -> str:
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for block in content:
+            if isinstance(block, str):
+                parts.append(block)
+            elif isinstance(block, dict) and block.get("type") == "text":
+                parts.append(str(block.get("text", "")))
+        return "".join(parts)
+    return ""
+
+
+def _normalize_stream_chunk(chunk: Any) -> tuple[str | None, Any]:
+    """Unwrap LangGraph stream chunks, including subgraph namespaced tuples."""
+    # subgraphs=True + stream_mode list: (namespace, mode, payload)
+    if isinstance(chunk, tuple) and len(chunk) == 3:
+        _, mode, payload = chunk
+        if isinstance(mode, str):
+            return mode, payload
+
+    if not isinstance(chunk, tuple) or len(chunk) != 2:
+        return None, chunk
+
+    first, second = chunk
+
+    # Subgraph format: (namespace, inner)
+    if isinstance(first, tuple) and isinstance(second, tuple):
+        inner = second
+        if len(inner) == 2 and isinstance(inner[0], str):
+            return inner[0], inner[1]
+        return None, inner
+
+    # Flat format: ("messages", payload)
+    if isinstance(first, str):
+        return first, second
+
+    # Legacy: (message_chunk, metadata) with no mode prefix
+    if hasattr(first, "content"):
+        return None, chunk
+
+    return None, chunk
+
+
+def _iter_stream_events(chunks: Iterator[Any]) -> Iterator[dict[str, str]]:
+    """Translate LangGraph stream chunks into SSE event dicts."""
+    for chunk in chunks:
+        mode, payload = _normalize_stream_chunk(chunk)
+
+        if mode == "messages" or (
+            mode is None
+            and isinstance(payload, tuple)
+            and len(payload) == 2
+            and hasattr(payload[0], "content")
+        ):
+            message_chunk = payload[0] if isinstance(payload, tuple) else payload
+            text = _message_chunk_text(getattr(message_chunk, "content", ""))
+            if text:
+                yield {
+                    "event": "token",
+                    "data": json.dumps({"content": text}),
+                }
+            continue
+
+        if mode == "updates" or (mode is None and isinstance(payload, dict)):
+            update = payload if isinstance(payload, dict) else {}
+            for node in update:
+                yield {
+                    "event": "step",
+                    "data": json.dumps({"node": node}),
+                }
 
 
 def _persist_assistant_reply(
@@ -68,10 +155,51 @@ def chat_endpoint(
         [{"role": "user", "content": req.message}],
         title=title_from_message(req.message) if is_new else None,
     )
-    result = chat(req.message, user_id=user_id, thread_id=thread_id)
+    result = orchestrator_chat(req.message, user_id=user_id, thread_id=thread_id)
     _persist_assistant_reply(user_id, thread_id, result)
     result["conversation_id"] = thread_id
     return ChatResponse(**result)
+
+
+@router.post("/chat/stream")
+def chat_stream_endpoint(
+    req: ChatRequest,
+    user: Annotated[Any, Depends(get_current_user)],
+) -> EventSourceResponse:
+    """Stream one orchestrator turn over SSE (token chunks + final done event)."""
+    user_id = user.id
+    thread_id = _resolve_conversation_id(req.conversation_id)
+    is_new = not exists_for_user(user_id, thread_id)
+    append_messages(
+        user_id,
+        thread_id,
+        [{"role": "user", "content": req.message}],
+        title=title_from_message(req.message) if is_new else None,
+    )
+
+    def event_generator() -> Iterator[dict[str, str]]:
+        try:
+            yield from _iter_stream_events(
+                orchestrator_stream(req.message, user_id=user_id, thread_id=thread_id)
+            )
+
+            agent = get_orchestrator_bundle(user_id)
+            state = agent.get_state(_thread_config(thread_id))
+            messages = (state.values or {}).get("messages", [])
+            result = build_chat_result(
+                agent, {"messages": messages}, thread_id, user_id
+            )
+            if result["status"] == "complete":
+                _persist_assistant_reply(user_id, thread_id, result)
+            result["conversation_id"] = thread_id
+            yield {"event": "done", "data": json.dumps(result)}
+        except Exception as exc:
+            yield {
+                "event": "error",
+                "data": json.dumps({"detail": str(exc)}),
+            }
+
+    return EventSourceResponse(event_generator())
 
 
 @router.post("/chat/resume", response_model=ChatResponse)
@@ -82,7 +210,7 @@ def chat_resume_endpoint(
     """Resume the agent after a HITL interrupt (e.g. contact selection)."""
     user_id = user.id
     thread_id = _resolve_conversation_id(req.conversation_id)
-    result = resume_chat(req.resume, user_id=user_id, thread_id=thread_id)
+    result = orchestrator_resume(req.resume, user_id=user_id, thread_id=thread_id)
     _persist_assistant_reply(user_id, thread_id, result)
     result["conversation_id"] = thread_id
     return ChatResponse(**result)

@@ -37,23 +37,6 @@ def discover_skills() -> list[dict]:
     return catalog
 
 
-def merge_xpander_skills(
-    local: list[dict], xpander_skills: list[dict] | None
-) -> list[dict]:
-    """Merge platform skills into the catalog without duplicating by name."""
-    seen = {s["name"].lower() for s in local}
-    merged = list(local)
-    for entry in xpander_skills or []:
-        if not isinstance(entry, dict) or not entry.get("name"):
-            continue
-        name = entry["name"]
-        if name.lower() in seen:
-            continue
-        seen.add(name.lower())
-        merged.append({"name": name, "description": entry.get("description", "")})
-    return merged
-
-
 def build_skills_catalog_prompt(skills: list[dict]) -> str:
     if not skills:
         return ""
